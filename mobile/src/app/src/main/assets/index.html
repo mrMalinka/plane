@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -237,12 +237,14 @@
           </div>
         </div>
 
-        <!-- relocate button -->
+        <!-- button carousel -->
         <div
-          class="bg-[var(--bg-3)] mb-[10px] w-5/6 rounded-md flex items-center"
+          class="bg-[var(--bg-3)] mb-[10px] w-5/6 rounded-md grid grid-flow-col auto-cols-[100%] overflow-x-scroll"
+          style="scroll-snap-type: inline mandatory"
         >
+          <!-- relocate -->
           <button
-            class="bg-[var(--bg-1)] p-[12px] m-[3px] w-full rounded-md duration-[50ms] active:bg-[var(--highlight)] flex"
+            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
           >
             <!-- map pin icon -->
             <svg
@@ -263,12 +265,96 @@
               >Redirect</span
             >
           </button>
+
+          <!-- manual -->
+          <button
+            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+          >
+            <!-- up down arrows icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="var(--font-mid)"
+              class="size-6"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M11.47 4.72a.75.75 0 0 1 1.06 0l3.75 3.75a.75.75 0 0 1-1.06 1.06L12 6.31 8.78 9.53a.75.75 0 0 1-1.06-1.06l3.75-3.75Zm-3.75 9.75a.75.75 0 0 1 1.06 0L12 17.69l3.22-3.22a.75.75 0 1 1 1.06 1.06l-3.75 3.75a.75.75 0 0 1-1.06 0l-3.75-3.75a.75.75 0 0 1 0-1.06Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+
+            <span
+              class="flex-1 text-[var(--font-light)] text-sm flex justify-center items-center"
+              >Manual</span
+            >
+          </button>
+
+          <!-- autoland -->
+          <button
+            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+          >
+            <!-- landing plane icon-->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24px"
+              height="24px"
+              viewBox="0 0 361.228 361.228"
+            >
+              <path
+                fill="var(--font-mid)"
+                d="M12.348,132.041c-0.012-0.001-0.023-0.003-0.036-0.005c-4.478-0.737-8.776,2.086-9.873,6.494
+    c-1.102,4.419,1.384,8.941,5.706,10.379l121.85,40.542l-40.533,16.141c-2.944,1.173-4.746,4.165-4.404,7.314
+    c0.34,3.151,2.741,5.688,5.87,6.203l26.57,4.373c0.763,0.125,1.541,0.125,2.304-0.002l100.975-16.795l97.254,15.842
+    c37.176,5.542,42.321-7.729,43.012-11.931c0.537-3.256,0.166-8.438-4.641-14.626c-4.875-6.279-13.269-12.348-25.652-18.553
+    c-4.135-2.072-6.104-3.632-8.188-5.284c-7.334-5.807-12.791-9.106-47.809-14.871L83.206,125.736L50.492,57.958
+    c-1.234-2.556-3.634-4.351-6.436-4.812l-12.517-2.061c-2.577-0.424-5.208,0.329-7.168,2.053
+    c-1.962,1.724-3.048,4.236-2.958,6.845l2.525,74.013L12.348,132.041z"
+              />
+              <path
+                fill="var(--font-mid)"
+                d="M342.707,277.051H16.604C7.434,277.051,0,284.484,0,293.654s7.434,16.604,16.604,16.604h326.103
+    c9.17,0,16.605-7.436,16.605-16.604S351.877,277.051,342.707,277.051z"
+              />
+            </svg>
+
+            <span
+              class="flex-1 text-[var(--font-light)] text-sm flex justify-center items-center"
+            >
+              Autoland
+            </span>
+          </button>
+
+          <!-- takeoff -->
+          <button
+            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+          >
+            <!-- bolt icon -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="var(--font-mid)"
+              class="size-6"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+
+            <span
+              class="flex-1 text-[var(--font-light)] text-sm flex justify-center items-center"
+            >
+              Takeoff
+            </span>
+          </button>
         </div>
       </div>
     </div>
 
     <!-- map -->
-    <div id="map" x-init="mapInit()"></div>
+    <div id="map" x-init="mapInit"></div>
     <script>
       function mapInit() {
         var map = L.map("map").setView([52.03142, 20.76578], 19);
