@@ -1,0 +1,5 @@
+<resources>
+    <!-- pico -->
+    <usb-device vendor-id="0x2E8A" product-id="0x0005" />
+    <usb-device vendor-id="0x2E8A" product-id="0x000A" />
+</resources>
