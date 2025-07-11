@@ -13,9 +13,6 @@
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
     ></script>
 
-    <!-- tailwind -->
-    <!--<script src="https://cdn.tailwindcss.com"></script>-->
-
     <script>
       document.addEventListener("alpine:init", () => {
         Alpine.data("joystick", () => ({
@@ -66,16 +63,14 @@
       });
     </script>
   </head>
-  <body
-    class="w-screen h-screen flex items-center justify-between bg-[var(--bg-2)]"
-  >
+  <body class="w-screen h-screen flex items-center justify-between bg-(--bg-2)">
     <script defer>
       function stickMoved({ x, y }) {}
     </script>
 
     <!-- panel -->
     <div
-      class="h-[70vh] aspect-square bg-[var(--bg-3)] rounded-2xl shadow-xl ml-[20px] flex"
+      class="h-[70vh] aspect-square bg-(--bg-3) rounded-2xl shadow-xl ml-[20px] flex"
     >
       <button></button>
     </div>
@@ -92,13 +87,13 @@
       @touchmove.window.prevent="move"
       @touchend="end"
       @joystick-move.window="stickMoved($event.detail)"
-      class="relative h-[70vh] aspect-square bg-[var(--bg-3)] rounded-2xl shadow-xl mr-[20px] touch-none select-none"
+      class="relative h-[70vh] aspect-square bg-(--bg-3) rounded-2xl shadow-xl mr-[20px] touch-none select-none"
     >
       <!-- knob -->
       <div
         x-ref="knob"
         :style="`transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px)); transition: ${dragging ? 'none' : 'transform 0.1s'};`"
-        class="absolute top-1/2 left-1/2 w-[40%] aspect-square bg-[var(--bg-1)] rounded-2xl shadow-xl touch-none select-none"
+        class="absolute top-1/2 left-1/2 w-[40%] aspect-square bg-(--bg-1) rounded-2xl shadow-xl touch-none select-none"
       ></div>
     </div>
   </body>

@@ -86,68 +86,59 @@
     <!-- controls -->
     <div class="flex flex-col">
       <!-- connection status indicators -->
-      <div
-        id="connections"
-        x-data
-        class="bg-[var(--bg-1)] flex justify-between"
-      >
+      <div id="connections" x-data class="bg-(--bg-1) flex justify-between">
         <div class="m-[10px] flex flex-col">
-          <span class="m-0 p-0 text-[var(--font-dark)] text-xs">USB</span>
+          <span class="m-0 p-0 text-(--font-dark) text-xs">USB</span>
           <span
             x-text="$store.connections.usb"
-            class="text-[var(--font-light)] text-md"
+            class="text-(--font-light) text-md"
           ></span>
         </div>
 
         <div class="m-[10px] flex flex-col items-end">
-          <span class="m-0 p-0 text-[var(--font-dark)] text-xs">LoRa</span>
+          <span class="m-0 p-0 text-(--font-dark) text-xs">LoRa</span>
           <span
             x-text="$store.connections.lora"
-            class="text-[var(--font-light)] text-md"
+            class="text-(--font-light) text-md"
           ></span>
         </div>
       </div>
 
       <!-- main panel -->
       <div
-        class="bg-[var(--bg-2)] h-full flex flex-col items-center justify-between"
+        class="bg-(--bg-2) h-full flex flex-col items-center justify-between"
       >
         <!-- sensors & data grid -->
         <div class="grid grid-cols-2 grid-rows-2 w-full" id="telemetry" x-data>
           <template x-for="(value, label) in $store.telemetry.info">
             <div class="m-[10px] mb-0 flex flex-col">
               <span
-                class="m-0 p-0 text-[var(--font-dark)] text-sm"
+                class="m-0 p-0 text-(--font-dark) text-sm"
                 x-text="label"
               ></span>
-              <span
-                x-text="value"
-                class="text-[var(--font-light)] text-lg"
-              ></span>
+              <span x-text="value" class="text-(--font-light) text-lg"></span>
             </div>
           </template>
         </div>
 
         <!-- camera controls -->
         <div
-          class="bg-[var(--bg-3)] rounded-md w-5/6 h-2/6 p-[2px] grid grid-cols-2"
+          class="bg-(--bg-3) rounded-md w-5/6 h-2/6 p-[2px] grid grid-cols-2"
           style="grid-template-rows: min-content 1fr"
           id="camera"
           x-data
         >
           <!-- top labels -->
-          <span class="m-0 p-0 text-[var(--font-mid)] text-xs mb-[3px]"
-            >Camera</span
-          >
+          <span class="m-0 p-0 text-(--font-mid) text-xs mb-[3px]">Camera</span>
           <span
-            class="m-0 p-0 text-[var(--font-mid)] text-xs text-right mb-[3px]"
+            class="m-0 p-0 text-(--font-mid) text-xs text-right mb-[3px]"
             x-text="$store.camera.camStatus"
           ></span>
 
           <!-- actual buttons -->
           <div class="flex col-span-2">
             <button
-              class="bg-[var(--bg-1)] w-1/3 rounded-md duration-[50ms] active:bg-[var(--highlight)] m-[1px] flex flex-col justify-center items-center"
+              class="bg-(--bg-1) w-1/3 rounded-md duration-[50ms] active:bg-(--highlight) m-[1px] flex flex-col justify-center items-center"
             >
               <!-- photo svg -->
               <svg
@@ -163,11 +154,11 @@
                 />
               </svg>
 
-              <span class="text-[var(--font-light)] text-xs">Photo</span>
+              <span class="text-(--font-light) text-xs">Photo</span>
             </button>
 
             <button
-              class="bg-[var(--bg-1)] w-1/3 rounded-md duration-[50ms] active:bg-[var(--highlight)] m-[2px] mt-[1px] mb-[1px] flex flex-col justify-center items-center"
+              class="bg-(--bg-1) w-1/3 rounded-md duration-[50ms] active:bg-(--highlight) m-[2px] mt-[1px] mb-[1px] flex flex-col justify-center items-center"
             >
               <!-- video svg -->
               <svg
@@ -181,11 +172,11 @@
                 />
               </svg>
 
-              <span class="text-[var(--font-light)] text-xs">Video</span>
+              <span class="text-(--font-light) text-xs">Video</span>
             </button>
 
             <button
-              class="bg-[var(--bg-1)] w-1/3 rounded-md duration-[50ms] active:bg-[var(--highlight)] m-[1px] flex flex-col justify-center items-center"
+              class="bg-(--bg-1) w-1/3 rounded-md duration-[50ms] active:bg-(--highlight) m-[1px] flex flex-col justify-center items-center"
             >
               <!-- stop svg -->
               <svg
@@ -201,20 +192,20 @@
                 />
               </svg>
 
-              <span class="text-[var(--font-light)] text-xs">Stop</span>
+              <span class="text-(--font-light) text-xs">Stop</span>
             </button>
           </div>
         </div>
 
         <!-- button carousel -->
         <div
-          class="bg-[var(--bg-3)] mb-[10px] w-5/6 rounded-md grid grid-flow-col auto-cols-[100%] overflow-x-scroll"
+          class="bg-(--bg-3) mb-[10px] w-5/6 rounded-md grid grid-flow-col auto-cols-[100%] overflow-x-scroll"
           style="scroll-snap-type: inline mandatory"
           x-data
         >
           <!-- relocate -->
           <button
-            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+            class="bg-(--bg-1) p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-(--highlight) flex snap-center"
           >
             <!-- map pin icon -->
             <svg
@@ -238,7 +229,7 @@
 
           <!-- manual -->
           <button
-            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+            class="bg-(--bg-1) p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-(--highlight) flex snap-center"
             @click="Android.loadAssetToWebView('manual.html')"
           >
             <!-- up down arrows icon -->
@@ -256,14 +247,14 @@
             </svg>
 
             <span
-              class="flex-1 text-[var(--font-light)] text-sm flex justify-center items-center"
+              class="flex-1 text-(--font-light) text-sm flex justify-center items-center"
               >Manual</span
             >
           </button>
 
           <!-- autoland -->
           <button
-            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+            class="bg-(--bg-1) p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-(--highlight) flex snap-center"
           >
             <!-- landing plane icon-->
             <svg
@@ -290,7 +281,7 @@
             </svg>
 
             <span
-              class="flex-1 text-[var(--font-light)] text-sm flex justify-center items-center"
+              class="flex-1 text-(--font-light) text-sm flex justify-center items-center"
             >
               Autoland
             </span>
@@ -298,7 +289,7 @@
 
           <!-- takeoff -->
           <button
-            class="bg-[var(--bg-1)] p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-[var(--highlight)] flex snap-center"
+            class="bg-(--bg-1) p-[12px] m-[3px] rounded-md duration-[50ms] active:bg-(--highlight) flex snap-center"
           >
             <!-- bolt icon -->
             <svg
@@ -315,7 +306,7 @@
             </svg>
 
             <span
-              class="flex-1 text-[var(--font-light)] text-sm flex justify-center items-center"
+              class="flex-1 text-(--font-light) text-sm flex justify-center items-center"
             >
               Takeoff
             </span>
