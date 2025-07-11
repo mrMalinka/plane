@@ -76,13 +76,12 @@ in pkgs.mkShell rec {
       tailwind_update() {
         BEFORE=$PWD
         cd "$APP_ASSETS"
-        npx @tailwindcss/cli -i "styles.css" -o "tailwind.css" &
+        npx --silent @tailwindcss/cli -i "styles.css" -o "tailwind.css"
         cd "$BEFORE"
       }
 
-      while inotifywait -q -e modify "$APP_ASSETS"; do
-        echo
-        tailwind_update
+      while inotifywait -qq -e modify "$APP_ASSETS"; do
+        tailwind_update >/dev/null 2>&1
       done &
 
       code .
