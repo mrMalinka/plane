@@ -10,6 +10,7 @@ in pkgs.mkShell rec {
       llvmPackages_19.bintools
       rustup
 
+      nodejs
       android-studio
       picocom
     ];
@@ -69,6 +70,13 @@ in pkgs.mkShell rec {
 
       export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
       export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
+
+      # tailwind watcher
+      APP_ASSETS="$PROJECTROOT/mobile/src/app/src/main/assets"
+      cd "$APP_ASSETS"
+      npx @tailwindcss/cli -i "$APP_ASSETS/styles.css" -o "$APP_ASSETS/tailwind.css" --watch > tailwind.log 2>&1 &
+      echo "tailwind is running"
+      cd "$PROJECTROOT"
 
       code .
     '';

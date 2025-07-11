@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import android.app.Activity;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "Picofly";
@@ -74,7 +75,10 @@ public class MainActivity extends AppCompatActivity {
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
-        webView.addJavascriptInterface(new WebAppInterface(), "AndroidSerial");
+        webView.addJavascriptInterface(
+                new WebAppInterface(this, webView),
+                "Android"
+        );
         webView.loadUrl("file:///android_asset/index.html");
 
         IntentFilter filter = new IntentFilter();
@@ -192,6 +196,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public class WebAppInterface {
+        private final Activity activity;
+        private final WebView webView;
+
+        public WebAppInterface(Activity activity, WebView webView) {
+            this.activity = activity;
+            this.webView = webView;
+        }
+
+        @JavascriptInterface
+        public void loadAssetToWebView(String path) {
+            activity.runOnUiThread(() -> {
+                webView.loadUrl("file:///android_asset/" + path);
+            });
+        }
+
         @JavascriptInterface
         public boolean isConnected() {
             return serialPort != null;

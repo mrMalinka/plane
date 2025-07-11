@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Manual Control</title>
+    <link href="tailwind.css" rel="stylesheet" />
+
+    <!-- alpine.js -->
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+
+    <!-- tailwind -->
+    <!--<script src="https://cdn.tailwindcss.com"></script>-->
+
+    <script>
+      document.addEventListener("alpine:init", () => {
+        Alpine.data("joystick", () => ({
+          x: 0,
+          y: 0,
+          max: 0,
+          dragging: false,
+          init() {
+            // compute max radius once dom is ready
+            this.$nextTick(() => {
+              this.max =
+                (this.$refs.joystick.clientWidth -
+                  this.$refs.knob.clientWidth) /
+                2;
+            });
+          },
+          start(evt) {
+            this.dragging = true;
+            this.update(evt);
+          },
+          move(evt) {
+            if (!this.dragging) return;
+            evt.preventDefault();
+            this.update(evt);
+          },
+          end() {
+            this.dragging = false;
+            this.x = 0;
+            this.y = 0;
+          },
+          update(evt) {
+            const rect = this.$refs.joystick.getBoundingClientRect();
+            const clientX = evt.clientX ?? evt.touches[0].clientX;
+            const clientY = evt.clientY ?? evt.touches[0].clientY;
+            const dx = clientX - rect.left - rect.width / 2;
+            const dy = clientY - rect.top - rect.height / 2;
+            const dist = Math.hypot(dx, dy);
+            const angle = Math.atan2(dy, dx);
+            const r = Math.min(dist, this.max);
+            this.x = r * Math.cos(angle);
+            this.y = r * Math.sin(angle);
+            this.$dispatch("joystick-move", {
+              x: +(this.x / this.max),
+              y: +(this.y / this.max),
+            });
+          },
+        }));
+      });
+    </script>
+  </head>
+  <body
+    class="w-screen h-screen flex items-center justify-between bg-[var(--bg-2)]"
+  >
+    <script defer>
+      function stickMoved({ x, y }) {}
+    </script>
+
+    <!-- panel -->
+    <div
+      class="h-[70vh] aspect-square bg-[var(--bg-3)] rounded-2xl shadow-xl ml-[20px] flex"
+    >
+      <button></button>
+    </div>
+
+    <!-- joystick -->
+    <div
+      x-data="joystick"
+      x-init="init()"
+      x-ref="joystick"
+      @pointerdown="start"
+      @pointermove.window.prevent="move"
+      @pointerup.window="end"
+      @touchstart.prevent="start"
+      @touchmove.window.prevent="move"
+      @touchend="end"
+      @joystick-move.window="stickMoved($event.detail)"
+      class="relative h-[70vh] aspect-square bg-[var(--bg-3)] rounded-2xl shadow-xl mr-[20px] touch-none select-none"
+    >
+      <!-- knob -->
+      <div
+        x-ref="knob"
+        :style="`transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px)); transition: ${dragging ? 'none' : 'transform 0.1s'};`"
+        class="absolute top-1/2 left-1/2 w-[40%] aspect-square bg-[var(--bg-1)] rounded-2xl shadow-xl touch-none select-none"
+      ></div>
+    </div>
+  </body>
+</html>

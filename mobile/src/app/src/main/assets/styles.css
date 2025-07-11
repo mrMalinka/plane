@@ -1,0 +1,18 @@
+@import url("https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400..700&display=swap");
+@import "tailwindcss";
+
+:root {
+  --font-light: #fefefe;
+  --font-dark: #79797a;
+  --font-mid: #b1b0b1;
+
+  --bg-1: #101011;
+  --bg-2: #1c1c1e;
+  --bg-3: #373639;
+
+  --highlight: #161c38;
+}
+* {
+  font-family: "Kode Mono", monospace;
+  box-sizing: border-box;
+}
