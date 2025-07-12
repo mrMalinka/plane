@@ -28,9 +28,17 @@
     ></script>
 
     <!-- alpine store -->
-    <script>
+    <script defer>
       // default string displayed before things are loaded by the main loop
       const alt = "...";
+
+      const updateInterval = 1000; // in ms
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      function mainLoop() {}
 
       document.addEventListener("alpine:init", () => {
         Alpine.store("connections", {
@@ -50,7 +58,17 @@
         Alpine.store("camera", {
           camStatus: alt,
         });
+
+        setInterval(mainLoop, updateInterval);
       });
+
+      if (typeof window.Android !== "object") {
+        window.Android = {
+          loadAssetToWebView(path) {
+            window.location.href = "/" + path;
+          },
+        };
+      }
     </script>
   </head>
 
@@ -59,30 +77,6 @@
     class="overflow-hidden w-screen h-screen grid"
     style="grid-template-columns: 25vw 75vw"
   >
-    <script defer>
-      // main loop
-      const updateInterval = 1000; // in ms
-
-      function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
-
-      function mainLoop() {}
-
-      window.addEventListener("alpine:init", () => {
-        // for testing outside of the app
-        if (typeof window.Android !== "object") {
-          window.Android = {
-            loadAssetToWebView(path) {
-              window.location.href = "/" + path;
-            },
-          };
-        }
-
-        setInterval(mainLoop, updateInterval);
-      });
-    </script>
-
     <!-- controls -->
     <div class="flex flex-col">
       <!-- connection status indicators -->

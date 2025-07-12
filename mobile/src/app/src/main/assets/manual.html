@@ -13,7 +13,7 @@
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
     ></script>
 
-    <script>
+    <script defer>
       document.addEventListener("alpine:init", () => {
         Alpine.data("joystick", () => ({
           x: 0,
@@ -60,19 +60,147 @@
             });
           },
         }));
+
+        Alpine.data("throttle", () => ({
+          x: 0,
+          max: 0,
+          inset: 10,
+          dragging: false,
+          init() {
+            this.$nextTick(() => {
+              const track = this.$refs.throttle;
+              const slider = this.$refs.slider;
+              this.max = (track.clientHeight - slider.clientHeight) / 2;
+
+              // start fully down
+              this.x = this.max;
+              this.$dispatch("throttle-move", { x: 0 });
+            });
+          },
+          start(evt) {
+            this.dragging = true;
+            this.update(evt);
+          },
+          move(evt) {
+            if (!this.dragging) return;
+            evt.preventDefault();
+            this.update(evt);
+          },
+          end() {
+            this.dragging = false;
+          },
+          update(evt) {
+            const rect = this.$refs.throttle.getBoundingClientRect();
+            const clientY = evt.clientY ?? evt.touches[0].clientY;
+            const dy = clientY - rect.top - rect.height / 2;
+            const r = Math.min(Math.max(dy, -this.max), this.max);
+            this.x = r;
+
+            const norm = (r / this.max + 1) / 2;
+            // its reversed and making it 1-x was the easiest way to fix it
+            this.$dispatch("throttle-move", { x: 1 - +norm });
+          },
+          // visual only
+          visibleY() {
+            const sign = this.x < 0 ? -1 : 1;
+            const r = Math.min(Math.abs(this.x), this.max - this.inset);
+            return sign * r;
+          },
+        }));
       });
+
+      if (typeof window.Android !== "object") {
+        window.Android = {
+          loadAssetToWebView(path) {
+            window.location.href = "/" + path;
+          },
+        };
+      }
+
+      function stickMoved({ x, y }) {}
+      function throttleMoved({ x }) {}
+      function onUnlock() {}
     </script>
   </head>
   <body class="w-screen h-screen flex items-center justify-between bg-(--bg-2)">
-    <script defer>
-      function stickMoved({ x, y }) {}
-    </script>
-
-    <!-- panel -->
+    <!-- throttle lever -->
     <div
-      class="h-[70vh] aspect-square bg-(--bg-3) rounded-2xl shadow-xl ml-[20px] flex"
+      x-data="throttle"
+      x-init="init"
+      x-ref="throttle"
+      @pointerdown="start"
+      @pointermove.window.prevent="move"
+      @pointerup.window="end"
+      @touchstart.prevent="start"
+      @touchmove.window.prevent="move"
+      @touchend="end"
+      @throttle-move.window="throttleMoved($event.detail)"
+      class="relative h-[70vh] aspect-1/2 ml-[20px] bg-(--bg-3) rounded-2xl shadow-xl"
     >
-      <button></button>
+      <!-- slider -->
+      <div
+        x-ref="slider"
+        :style="`
+            transform: translateY(${ visibleY() }px);
+            transition: ${dragging ? 'none' : 'transform 0.1s'};
+          `"
+        class="absolute top-1/2 left-1/2 w-[80%] h-[20%] bg-(--bg-1) rounded-2xl shadow-xl -translate-x-1/2 -translate-y-1/2 touch-none select-none"
+      ></div>
+    </div>
+
+    <!-- central panel -->
+    <div
+      class="w-[25vw] h-[50vh] bg-(--bg-3) rounded-2xl shadow-xl grid"
+      style="grid-template-rows: 1fr min-content"
+      x-data
+    >
+      <div class="flex justify-center items-center">
+        <!-- unlock button -->
+        <button
+          class="w-[40%] aspect-square bg-(--bg-1) flex flex-col items-center rounded-2xl shadow-xl"
+          style="justify-content: space-evenly"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="var(--font-mid)"
+            class="size-6"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z"
+              clip-rule="evenodd"
+            />
+          </svg>
+
+          <span class="text-(--font-light) flex justify-center items-center"
+            >Unlock</span
+          >
+        </button>
+      </div>
+
+      <button
+        class="bg-(--bg-1) p-[15px] m-[3px] rounded-2xl shadow-xl duration-[50ms] active:bg-(--highlight) h-[10vh] flex justify-between items-center"
+        style="grid-row-start: 2"
+        @click="Android.loadAssetToWebView('index.html')"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="var(--font-mid)"
+          class="size-6"
+        >
+          <path
+            d="M9.195 18.44c1.25.714 2.805-.189 2.805-1.629v-2.34l6.945 3.968c1.25.715 2.805-.188 2.805-1.628V8.69c0-1.44-1.555-2.343-2.805-1.628L12 11.029v-2.34c0-1.44-1.555-2.343-2.805-1.628l-7.108 4.061c-1.26.72-1.26 2.536 0 3.256l7.108 4.061Z"
+          />
+        </svg>
+
+        <span
+          class="text-(--font-light) text-xs flex justify-center items-center"
+        >
+          Back to Autopilot</span
+        >
+      </button>
     </div>
 
     <!-- joystick -->
@@ -92,7 +220,10 @@
       <!-- knob -->
       <div
         x-ref="knob"
-        :style="`transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px)); transition: ${dragging ? 'none' : 'transform 0.1s'};`"
+        :style="`
+          transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px));
+          transition: ${dragging ? 'none' : 'transform 0.1s'};
+        `"
         class="absolute top-1/2 left-1/2 w-[40%] aspect-square bg-(--bg-1) rounded-2xl shadow-xl touch-none select-none"
       ></div>
     </div>
