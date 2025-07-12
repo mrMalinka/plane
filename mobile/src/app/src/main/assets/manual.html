@@ -14,6 +14,8 @@
     ></script>
 
     <script defer>
+      var locked = true;
+
       document.addEventListener("alpine:init", () => {
         Alpine.data("joystick", () => ({
           x: 0,
@@ -107,6 +109,29 @@
             return sign * r;
           },
         }));
+
+        Alpine.data("unlock", () => ({
+          time: 0, // how long its been pressed
+          duration: 2000, // how long it needs to be pressed
+          beingHeld: false,
+          start(evt) {
+            this.beingHeld = true;
+            const id = setInterval(() => {
+              if (!this.beingHeld) {
+                clearInterval(id);
+              }
+              if (this.time == this.duration) {
+                locked = false;
+                onUnlock();
+              }
+              this.time += 10;
+            }, 10);
+          },
+          end(evt) {
+            this.time = 0;
+            this.beingHeld = false;
+          },
+        }));
       });
 
       if (typeof window.Android !== "object") {
@@ -119,7 +144,9 @@
 
       function stickMoved({ x, y }) {}
       function throttleMoved({ x }) {}
-      function onUnlock() {}
+      function onUnlock() {
+        console.log("unlock");
+      }
     </script>
   </head>
   <body class="w-screen h-screen flex items-center justify-between bg-(--bg-2)">
@@ -129,12 +156,12 @@
       x-init="init"
       x-ref="throttle"
       @pointerdown="start"
-      @pointermove.window.prevent="move"
-      @pointerup.window="end"
-      @touchstart.prevent="start"
-      @touchmove.window.prevent="move"
+      @pointermove="move"
+      @pointerup="end"
+      @touchstart="start"
+      @touchmove="move"
       @touchend="end"
-      @throttle-move.window="throttleMoved($event.detail)"
+      @throttle-move="throttleMoved($event.detail)"
       class="relative h-[70vh] aspect-1/2 ml-[20px] bg-(--bg-3) rounded-2xl shadow-xl"
     >
       <!-- slider -->
@@ -157,7 +184,13 @@
       <div class="flex justify-center items-center">
         <!-- unlock button -->
         <button
-          class="w-[40%] aspect-square bg-(--bg-1) flex flex-col items-center rounded-2xl shadow-xl"
+          class="w-[40%] aspect-square bg-(--bg-1) flex flex-col items-center rounded-2xl shadow-xl touch-none select-none"
+          x-data="unlock"
+          x-ref="unlock"
+          @pointerdown="start"
+          @pointerup="end"
+          @touchstart="start"
+          @touchend="end"
           style="justify-content: space-evenly"
         >
           <svg
@@ -173,15 +206,17 @@
             />
           </svg>
 
-          <span class="text-(--font-light) flex justify-center items-center"
+          <span
+            x-ref=""
+            class="text-(--font-light) flex justify-center items-center"
             >Unlock</span
           >
         </button>
       </div>
 
       <button
-        class="bg-(--bg-1) p-[15px] m-[3px] rounded-2xl shadow-xl duration-[50ms] active:bg-(--highlight) h-[10vh] flex justify-between items-center"
-        style="grid-row-start: 2"
+        class="bg-(--bg-1) p-[15px] m-[3px] rounded-2xl shadow-xl duration-[50ms] active:bg-(--highlight) h-[10vh] flex items-center"
+        style="grid-row-start: 2; justify-content: space-evenly"
         @click="Android.loadAssetToWebView('index.html')"
       >
         <svg
@@ -206,15 +241,15 @@
     <!-- joystick -->
     <div
       x-data="joystick"
-      x-init="init()"
+      x-init="init"
       x-ref="joystick"
       @pointerdown="start"
-      @pointermove.window.prevent="move"
-      @pointerup.window="end"
-      @touchstart.prevent="start"
-      @touchmove.window.prevent="move"
+      @pointermove="move"
+      @pointerup="end"
+      @touchstart="start"
+      @touchmove="move"
       @touchend="end"
-      @joystick-move.window="stickMoved($event.detail)"
+      @joystick-move="stickMoved($event.detail)"
       class="relative h-[70vh] aspect-square bg-(--bg-3) rounded-2xl shadow-xl mr-[20px] touch-none select-none"
     >
       <!-- knob -->
