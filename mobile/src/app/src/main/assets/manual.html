@@ -13,8 +13,16 @@
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
     ></script>
 
+    <style>
+      :root {
+        --flash: #2ecc71;
+      }
+    </style>
+
     <script defer>
-      var locked = true;
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
 
       document.addEventListener("alpine:init", () => {
         Alpine.data("joystick", () => ({
@@ -68,6 +76,7 @@
           max: 0,
           inset: 10,
           dragging: false,
+
           init() {
             this.$nextTick(() => {
               const track = this.$refs.throttle;
@@ -102,6 +111,7 @@
             // its reversed and making it 1-x was the easiest way to fix it
             this.$dispatch("throttle-move", { x: 1 - +norm });
           },
+
           // visual only
           visibleY() {
             const sign = this.x < 0 ? -1 : 1;
@@ -111,27 +121,29 @@
         }));
 
         Alpine.data("unlock", () => ({
-          time: 0, // how long its been pressed
-          duration: 2000, // how long it needs to be pressed
-          beingHeld: false,
-          start(evt) {
-            this.beingHeld = true;
-            const id = setInterval(() => {
-              if (!this.beingHeld) {
-                clearInterval(id);
+          text: "Locked",
+          unlockClicks: 0,
+
+          async unlockClick() {
+            if (this.unlockClicks === 3) {
+              return;
+            }
+
+            this.unlockClicks += 1;
+            this.text = `${this.unlockClicks}`;
+            if (this.unlockClicks === 3) {
+              for (let i = 0; i < 6; i++) {
+                Alpine.store("global").blink = !Alpine.store("global").blink;
+                await sleep(100);
               }
-              if (this.time == this.duration) {
-                locked = false;
-                onUnlock();
-              }
-              this.time += 10;
-            }, 10);
-          },
-          end(evt) {
-            this.time = 0;
-            this.beingHeld = false;
+              this.text = "UNLOCKED";
+            }
           },
         }));
+
+        Alpine.store("global", {
+          blink: false,
+        });
       });
 
       if (typeof window.Android !== "object") {
@@ -142,11 +154,10 @@
         };
       }
 
+      function startManual() {}
+
       function stickMoved({ x, y }) {}
       function throttleMoved({ x }) {}
-      function onUnlock() {
-        console.log("unlock");
-      }
     </script>
   </head>
   <body class="w-screen h-screen flex items-center justify-between bg-(--bg-2)">
@@ -158,7 +169,7 @@
       @pointerdown="start"
       @pointermove="move"
       @pointerup="end"
-      @touchstart="start"
+      @touchstart="start;"
       @touchmove="move"
       @touchend="end"
       @throttle-move="throttleMoved($event.detail)"
@@ -170,8 +181,9 @@
         :style="`
             transform: translateY(${ visibleY() }px);
             transition: ${dragging ? 'none' : 'transform 0.1s'};
+            background-color: ${$store.global.blink ? 'var(--flash)' : 'var(--bg-1)'}
           `"
-        class="absolute top-1/2 left-1/2 w-[80%] h-[20%] bg-(--bg-1) rounded-2xl shadow-xl -translate-x-1/2 -translate-y-1/2 touch-none select-none"
+        class="absolute top-1/2 left-1/2 w-[80%] h-[20%] rounded-2xl shadow-xl -translate-x-1/2 -translate-y-1/2 touch-none select-none"
       ></div>
     </div>
 
@@ -184,13 +196,9 @@
       <div class="flex justify-center items-center">
         <!-- unlock button -->
         <button
+          x-data="unlock()"
+          @click="unlockClick"
           class="w-[40%] aspect-square bg-(--bg-1) flex flex-col items-center rounded-2xl shadow-xl touch-none select-none"
-          x-data="unlock"
-          x-ref="unlock"
-          @pointerdown="start"
-          @pointerup="end"
-          @touchstart="start"
-          @touchend="end"
           style="justify-content: space-evenly"
         >
           <svg
@@ -207,7 +215,7 @@
           </svg>
 
           <span
-            x-ref=""
+            x-text="text"
             class="text-(--font-light) flex justify-center items-center"
             >Unlock</span
           >
@@ -258,6 +266,7 @@
         :style="`
           transform: translate(calc(-50% + ${x}px), calc(-50% + ${y}px));
           transition: ${dragging ? 'none' : 'transform 0.1s'};
+          background-color: ${$store.global.blink ? 'var(--flash)' : 'var(--bg-1)'}
         `"
         class="absolute top-1/2 left-1/2 w-[40%] aspect-square bg-(--bg-1) rounded-2xl shadow-xl touch-none select-none"
       ></div>

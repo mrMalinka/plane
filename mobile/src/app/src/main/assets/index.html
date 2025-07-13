@@ -46,12 +46,10 @@
         });
 
         Alpine.store("telemetry", {
-          info: {
-            Status: alt,
-            Battery: alt,
-            Speed: alt,
-            Altitude: alt,
-          },
+          Status: alt,
+          Battery: alt,
+          Speed: alt,
+          Altitude: alt,
         });
 
         Alpine.store("camera", {
@@ -103,7 +101,7 @@
       >
         <!-- sensors & data grid -->
         <div class="grid grid-cols-2 grid-rows-2 w-full" id="telemetry" x-data>
-          <template x-for="(value, label) in $store.telemetry.info">
+          <template x-for="(value, label) in $store.telemetry">
             <div class="m-[10px] mb-0 flex flex-col">
               <span
                 class="m-0 p-0 text-(--font-dark) text-sm"
