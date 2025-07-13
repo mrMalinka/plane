@@ -137,6 +137,8 @@
                 await sleep(100);
               }
               this.text = "UNLOCKED";
+
+              startManual();
             }
           },
         }));
@@ -155,6 +157,7 @@
       }
 
       function startManual() {}
+      function endManual() {}
 
       function stickMoved({ x, y }) {}
       function throttleMoved({ x }) {}
@@ -225,7 +228,7 @@
       <button
         class="bg-(--bg-1) p-[15px] m-[3px] rounded-2xl shadow-xl duration-[50ms] active:bg-(--highlight) h-[10vh] flex items-center"
         style="grid-row-start: 2; justify-content: space-evenly"
-        @click="Android.loadAssetToWebView('index.html')"
+        @click="endManual(); Android.loadAssetToWebView('index.html')"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
