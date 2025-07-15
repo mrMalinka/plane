@@ -14,7 +14,6 @@ import (
 // SX127x
 type LoRa struct {
 	spiConn    spi.Conn
-	csPin      gpio.PinOut
 	resetPin   gpio.PinOut
 	dio0Pin    gpio.PinIn
 	frequency  uint32 // in Hz
@@ -33,20 +32,22 @@ func New(spiDev, cs, reset, dio0 string, freqHz uint32) (*LoRa, error) {
 	if err != nil {
 		return nil, err
 	}
-	csPin := gpioreg.ByName(cs)
+
 	resetPin := gpioreg.ByName(reset)
 	dio0Pin := gpioreg.ByName(dio0)
-	if csPin == nil || resetPin == nil || dio0Pin == nil {
+	if resetPin == nil || dio0Pin == nil {
 		return nil, errors.New("invalid GPIO pin name")
 	}
-	csPin.Out(gpio.High)
+
 	resetPin.Out(gpio.High)
 	dio0Pin.In(gpio.PullDown, gpio.RisingEdge)
+	// 10MHz clock speed, mode 0, 8 bits per word
 	conn, err := port.Connect(10*1000*1000, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}
-	l := &LoRa{spiConn: conn, csPin: csPin, resetPin: resetPin, dio0Pin: dio0Pin, frequency: freqHz}
+
+	l := &LoRa{spiConn: conn, resetPin: resetPin, dio0Pin: dio0Pin, frequency: freqHz}
 	if err := l.Reset(); err != nil {
 		return nil, err
 	}
@@ -58,10 +59,14 @@ func New(spiDev, cs, reset, dio0 string, freqHz uint32) (*LoRa, error) {
 
 // pulses reset pin
 func (l *LoRa) Reset() error {
-	l.resetPin.Out(gpio.Low)
-	time.Sleep(100 * time.Millisecond)
-	l.resetPin.Out(gpio.High)
-	time.Sleep(100 * time.Millisecond)
+	if err := l.resetPin.Out(gpio.Low); err != nil {
+		return err
+	}
+	time.Sleep(10 * time.Millisecond)
+	if err := l.resetPin.Out(gpio.High); err != nil {
+		return err
+	}
+	time.Sleep(10 * time.Millisecond)
 	return nil
 }
 
@@ -79,15 +84,18 @@ func (l *LoRa) Init() error {
 	l.SetSpreadingFactor(7)
 	l.SetLowDataRateOptimize(false)
 
+	// enable crc
+	l.SetCRC(true)
+
 	// set frequency
 	frf := uint64(l.frequency) * (1 << 19) / 32_000_000
 	l.writeReg(RegFrMsb, byte(frf>>16))
 	l.writeReg(RegFrMid, byte(frf>>8))
 	l.writeReg(RegFrLsb, byte(frf))
 
-	// set fifo
-	l.writeReg(RegFifoTxBaseAddr, 0)
-	l.writeReg(RegFifoRxBaseAddr, 0)
+	// set fifo memory spaces
+	l.writeReg(RegFifoTxBaseAddr, 0x00)
+	l.writeReg(RegFifoRxBaseAddr, 0x80)
 
 	// standby
 	l.writeReg(RegOpMode, ModeStandby)
@@ -176,6 +184,19 @@ func (l *LoRa) SetLnaGain(g byte) error {
 	return l.writeReg(RegLna, ex)
 }
 
+func (l *LoRa) SetCRC(enable bool) error {
+	existing, err := l.readReg(RegModemConfig2)
+	if err != nil {
+		return err
+	}
+	if enable {
+		existing |= 0x04
+	} else {
+		existing &^= 0x04
+	}
+	return l.writeReg(RegModemConfig2, existing)
+}
+
 // enables/disabled overcurrent protection
 func (l *LoRa) SetOcp(enable bool) error {
 	val := byte(0x20) // default OCP on, trim ~100mA
@@ -186,15 +207,10 @@ func (l *LoRa) SetOcp(enable bool) error {
 }
 
 func (l *LoRa) writeReg(reg, val byte) error {
-	l.csPin.Out(gpio.Low)
-	defer l.csPin.Out(gpio.High)
-	err := l.spiConn.Tx([]byte{reg | 0x80, val}, nil)
-	return err
+	return l.spiConn.Tx([]byte{reg | 0x80, val}, nil)
 }
 
 func (l *LoRa) readReg(reg byte) (byte, error) {
-	l.csPin.Out(gpio.Low)
-	defer l.csPin.Out(gpio.High)
 	buf := make([]byte, 2)
 	if err := l.spiConn.Tx([]byte{reg & 0x7F, 0x00}, buf); err != nil {
 		return 0, err

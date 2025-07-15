@@ -2,6 +2,7 @@ package lora
 
 // register addresses
 const (
+	RegFifo             = 0x00
 	RegOpMode           = 0x01
 	RegFrMsb            = 0x06
 	RegFrMid            = 0x07
@@ -39,6 +40,26 @@ const (
 	ModeFSRx         = 0x04
 	ModeRxContinuous = 0x05
 	ModeRxSingle     = 0x06
+)
+
+// dio0 mapping options
+const (
+	DIO0_RxDone          = 0x00
+	DIO0_TxDone          = 0x40
+	DIO0_PayloadCrcError = 0x80
+	DIO0_ValidHeader     = 0xC0
+)
+
+// IRQ masks
+const (
+	IrqTxDone         = 0x08
+	IrqRxDone         = 0x40
+	IrqPayloadCrcErr  = 0x20
+	IrqValidHeader    = 0x10
+	IrqRxTimeout      = 0x80
+	IrqFhssChangeChan = 0x02
+	IrqCadDone        = 0x04
+	IrqCadDetected    = 0x01
 )
 
 // bandwidth settings (Hz)
