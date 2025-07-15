@@ -65,7 +65,9 @@ done &
 
 # pi zero
 zero_sync() {
-    rsync -avz -e ssh "$PROJECT_ROOT"/zero/ "$ZERO_USERNAME"@"$ZERO_IP":"$ZERO_SYNC_DIR"/
+    rsync --exclude="go.mod" \
+    -avz -e ssh "$PROJECT_ROOT"/zero/ \
+    "$ZERO_USERNAME"@"$ZERO_IP":"$ZERO_SYNC_DIR"/
 }
 alias zero_ssh="ssh $ZERO_USERNAME@$ZERO_IP"
 
