@@ -48,12 +48,6 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	return nil
 }
 
-// reads a register or returns 0 on error
-func (l *LoRa) readRegOrZero(reg byte) byte {
-	b, _ := l.readReg(reg)
-	return b
-}
-
 func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 	// reset IRQ flags
 	l.writeReg(RegIrqFlags, 0xFF)
@@ -114,4 +108,10 @@ func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 	// clear IRQ flags
 	l.writeReg(RegIrqFlags, 0xFF)
 	return buf, nil
+}
+
+// reads a register or returns 0 on error
+func (l *LoRa) readRegOrZero(reg byte) byte {
+	b, _ := l.readReg(reg)
+	return b
 }

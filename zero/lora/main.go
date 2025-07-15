@@ -23,8 +23,8 @@ type LoRa struct {
 	txPower    int // in dBm, NOT mW
 }
 
-// spiDev: default can be ""; cs, reset, dio0: GPIO names; freqHz: e.g. 433e6
-func New(spiDev, cs, reset, dio0 string, freqHz uint32) (*LoRa, error) {
+// spiDev: default can be ""; reset, dio0: GPIO names; freqHz: e.g. 433e6
+func New(spiDev, reset, dio0 string, freqHz uint32) (*LoRa, error) {
 	if _, err := host.Init(); err != nil {
 		return nil, err
 	}
@@ -94,6 +94,7 @@ func (l *LoRa) Init() error {
 	l.writeReg(RegFrLsb, byte(frf))
 
 	// set fifo memory spaces
+	// tx is first 128 bytes, rx is last
 	l.writeReg(RegFifoTxBaseAddr, 0x00)
 	l.writeReg(RegFifoRxBaseAddr, 0x80)
 
@@ -204,6 +205,13 @@ func (l *LoRa) SetOcp(enable bool) error {
 		val |= 0x0F // disable
 	}
 	return l.writeReg(RegOcp, val)
+}
+
+// returns signal strength in dBm ( -120dBm (low) -> -30dBm (high) )
+func (l *LoRa) GetSignalStrength() (int, error) {
+	rssiRaw, err := l.readReg(RegPktRssiValue)
+	// datasheet specifies offset of 137 dBm
+	return int(rssiRaw) - 137, err
 }
 
 func (l *LoRa) writeReg(reg, val byte) error {
