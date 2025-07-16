@@ -6,6 +6,7 @@ import (
 
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
+	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 	"periph.io/x/conn/v3/spi/spireg"
 	"periph.io/x/host/v3"
@@ -42,7 +43,7 @@ func New(spiDev, reset, dio0 string, freqHz uint32) (*LoRa, error) {
 	resetPin.Out(gpio.High)
 	dio0Pin.In(gpio.PullDown, gpio.RisingEdge)
 	// 10MHz clock speed, mode 0, 8 bits per word
-	conn, err := port.Connect(10*1000*1000, spi.Mode0, 8)
+	conn, err := port.Connect(10*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}
