@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Transmit sends data and blocks until transmission is done or timeout occurs
 func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	// set standby mode
 	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
@@ -37,8 +38,8 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 		return err
 	}
 
-	// wait for DIO0 rising edge
-	if !l.dio0Pin.WaitForEdge(timeout) {
+	// wait unitl transmit is finished
+	if !l.waitDIO0(timeout) {
 		return errors.New("transmit timeout")
 	}
 
@@ -64,8 +65,8 @@ func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 		return nil, err
 	}
 
-	// wait for DIO0 rising edge
-	if !l.dio0Pin.WaitForEdge(timeout) {
+	// wait until receive is finished
+	if !l.waitDIO0(timeout) {
 		return nil, errors.New("receive timeout")
 	}
 
@@ -107,6 +108,22 @@ func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 	// clear IRQ flags
 	l.writeReg(RegIrqFlags, 0xFF)
 	return buf, nil
+}
+
+// helper because tinygo doesnt support rising edge detection;
+// returns true if success, false if timed out
+func (l *LoRa) waitDIO0(timeout time.Duration) bool {
+	const pollFrequency = 100 * time.Microsecond
+	deadline := time.Now().Add(timeout)
+	for {
+		if l.dio0Pin.Get() {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(pollFrequency)
+	}
 }
 
 // reads a register or returns 0 on error

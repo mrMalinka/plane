@@ -1,5 +1,6 @@
-/zero/target/
 /.env
 /.vscode
 /pico/vendor/
 /pico/modules/
+/pico/mount/
+/pico/out.uf2

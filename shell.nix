@@ -5,6 +5,9 @@ pkgs.mkShell rec {
       nodejs
       android-studio
       picocom
+
+      # tinygo doesnt support 1.24
+      go_1_23
       tinygo
     ];
 
