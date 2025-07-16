@@ -5,6 +5,7 @@ pkgs.mkShell rec {
       nodejs
       android-studio
       picocom
+      tinygo
     ];
 
     shellHook = builtins.readFile ./shell-hook.bash;

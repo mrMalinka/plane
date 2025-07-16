@@ -7,48 +7,7 @@ export $(grep -v '^#' .env | xargs)
 # ZERO_SYNC_DIR - absolute path to the directory on the pi zero to sync (make sure it exists)
 
 # pico
-find_pico_device() {
-    PICO_DEVICE=""
-    for dev in /dev/sd?1; do
-        if [ -b "$dev" ]; then
-        PICO_DEVICE="$dev"
-        break
-        fi
-    done
-
-    if [ -z "$PICO_DEVICE" ]; then
-        echo "pico is not connected" >&2
-        return 1
-    else
-        echo "$PICO_DEVICE"
-    fi
-}
-pico_mount() {
-    DEV="$(find_pico_device)"
-    if [ -z "$DEV" ]; then
-        return 1
-    fi
-    mkdir -p "$PROJECT_ROOT/pico/mount/"
-    sudo mount "$DEV" "$PROJECT_ROOT/pico/mount/" -o uid=1000,gid=1000,flush
-}
-pico_sync() {
-    # check if pico is mounted and has python files before deleting the local ones
-    if ! find "$PROJECT_ROOT/pico/mount/" -maxdepth 1 -name '*.py' | grep -q .; then
-        echo "pico is not mounted" >&2
-        return 1
-    fi
-
-    mkdir -p "$PROJECT_ROOT/pico/save/"
-    rm -f "$PROJECT_ROOT/pico/save/"*.py
-    cp "$PROJECT_ROOT/pico/mount/"*.py "$PROJECT_ROOT/pico/save/"
-
-    rm -f "$PROJECT_ROOT/pico/libs.txt"
-    {
-        echo "from 'https://circuitpython.org/libraries' first bundle"
-        ls -1 "$PROJECT_ROOT/pico/mount/lib/"
-    } > "$PROJECT_ROOT/pico/libs.txt"
-}
-alias pico_unmount='sudo umount "$PROJECT_ROOT/pico/mount/"'
+alias pico_flash='tinygo flash -target=pico' # followed by the target
 alias pico_term='sudo picocom -b 115200 /dev/ttyACM0'
 
 # tailwind
@@ -78,4 +37,26 @@ alias android_studio_launch='android-studio >/dev/null 2>&1 &'
 export PATH=$PATH:''${CARGO_HOME:-~/.cargo}/bin
 export PATH=$PATH:''${RUSTUP_HOME:-~/.rustup}/toolchains/$RUSTC_VERSION-x86_64-unknown-linux-gnu/bin/
 
+# pico vendor setup so gopls works
+MODULES="$PROJECT_ROOT/pico/modules"
+TINYGOROOT="$(tinygo env TINYGOROOT)"
+
+rm -rf "$MODULES"
+rm -rf "$PROJECT_ROOT/pico/vendor"
+mkdir -p "$MODULES"
+
+for pkg in machine device runtime; do
+  rsync -a --no-perms --no-owner --no-group \
+    "$TINYGOROOT"/src/"$pkg" "$MODULES"
+  chmod -R u+w "$MODULES"/"$pkg"
+
+  base_dir="${MODULES%/}"
+  find "$MODULES/$pkg" -type d -print0 | while IFS= read -r -d '' dir; do
+    module_name="${dir#$base_dir/}"
+    printf "module %s\ngo 1.24.4\n" "$module_name" > "$dir/go.mod"
+  done
+done
+
+# launch vsc
+cd "$PROJECT_ROOT"
 code .
