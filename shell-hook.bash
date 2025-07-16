@@ -85,6 +85,7 @@ pico_flash() {
 
     tinygo build -o main.uf2 -target=pico "$PROJECT_ROOT"/pico/
     sudo mv main.uf2 "$PROJECT_ROOT"/pico/mount/
+    pico_unmount
 }
 alias pico_unmount='sudo umount "$PROJECT_ROOT/pico/mount/"'
 alias pico_term='sudo picocom -b 115200 /dev/ttyACM0'

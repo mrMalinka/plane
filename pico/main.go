@@ -2,7 +2,6 @@ package main
 
 import (
 	"machine"
-	"time"
 
 	"tinygo.org/x/drivers/hd44780i2c"
 )
@@ -12,19 +11,21 @@ func main() {
 	onboardLed.Configure(machine.PinConfig{
 		Mode: machine.PinOutput,
 	})
+	onboardLed.High()
 
 	machine.I2C0.Configure(machine.I2CConfig{
 		Frequency: 400 * machine.KHz,
-		SDA:       machine.Pin(1),
-		SCL:       machine.Pin(2),
+		SDA:       machine.Pin(0),
+		SCL:       machine.Pin(1),
 	})
 
 	lcd := hd44780i2c.New(machine.I2C0, 0x27)
+	lcd.Configure(hd44780i2c.Config{
+		Width: 16, Height: 2, Font: hd44780i2c.FONT_5X8, CursorOn: true, CursorBlink: true,
+	})
 	lcd.ClearDisplay()
 	lcd.Print([]byte("hello world"))
 
-	onboardLed.High()
-	time.Sleep(3 * time.Second)
 	onboardLed.Low()
 
 	/*
