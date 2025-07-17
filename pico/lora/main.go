@@ -3,50 +3,61 @@ package lora
 import (
 	"errors"
 	"machine"
+	"math"
 	"time"
+
+	"tinygo.org/x/drivers/hd44780i2c"
 )
+
+var lcd *hd44780i2c.Device
+
+type LoRaConfig struct {
+	SpiDev machine.SPI
+
+	Sdo, Sdi, Sck,
+	Cs, Reset uint8
+
+	FreqHz uint32
+}
 
 // SX127x
 type LoRa struct {
 	spiConn    machine.SPI
 	csPin      machine.Pin // chip select out
 	resetPin   machine.Pin // out
-	dio0Pin    machine.Pin // in
 	frequency  uint32      // in Hz
 	bandwidth  uint32
 	codingRate string
 	spreadingF byte
 	txPower    int // in dBm, NOT mW
+
+	config LoRaConfig
 }
 
-// spiDev: SPI0 or SPI1; sdo, sdi, sck, cs, reset, dio0: GPIO indexes; freqHz: e.g. 433e6
-func New(spiDev machine.SPI, sdo, sdi, sck, cs, reset, dio0 uint8, freqHz uint32) (*LoRa, error) {
-	csPin := machine.Pin(cs)
+// spiDev: SPI0 or SPI1; sdo, sdi, sck, cs, reset: GPIO indexes; freqHz: e.g. 433e6
+func New(c LoRaConfig, lcdl *hd44780i2c.Device) (*LoRa, error) {
+	lcd = lcdl
+	csPin := machine.Pin(c.Cs)
 	csPin.Configure(machine.PinConfig{
 		Mode: machine.PinOutput,
 	})
-	resetPin := machine.Pin(reset)
+
+	resetPin := machine.Pin(c.Reset)
 	resetPin.Configure(machine.PinConfig{
 		Mode: machine.PinOutput,
 	})
-	dio0Pin := machine.Pin(dio0)
-	dio0Pin.Configure(machine.PinConfig{
-		Mode: machine.PinInputPulldown,
-	})
 
 	resetPin.High()
-	// rising edge not supported?
-	// dio0Pin.In(gpio.PullDown, gpio.RisingEdge)
 
-	spiDev.Configure(machine.SPIConfig{
+	c.SpiDev.Configure(machine.SPIConfig{
 		Frequency: 10 * machine.MHz,
 		Mode:      0,
-		SDO:       machine.Pin(sdo),
-		SDI:       machine.Pin(sdi),
-		SCK:       machine.Pin(sck),
+		SDO:       machine.Pin(c.Sdo),
+		SDI:       machine.Pin(c.Sdi),
+		SCK:       machine.Pin(c.Sck),
 	})
 
-	l := &LoRa{spiConn: spiDev, csPin: csPin, resetPin: resetPin, dio0Pin: dio0Pin, frequency: freqHz}
+	l := &LoRa{spiConn: c.SpiDev, csPin: csPin, resetPin: resetPin, frequency: c.FreqHz, config: c}
 	if err := l.Reset(); err != nil {
 		return nil, err
 	}
@@ -66,21 +77,37 @@ func (l *LoRa) Reset() error {
 }
 
 func (l *LoRa) Init() error {
+	lcd.ClearDisplay()
+	lcd.Print([]byte("version 1"))
 	ver, err := l.readReg(RegVersion)
+	lcd.ClearDisplay()
+	lcd.Print([]byte("version 2"))
 	if err != nil || ver != 0x12 {
 		return errors.New("LoRa module not found or unsupported version")
 	}
-	// sleep to configure
+	lcd.ClearDisplay()
+	lcd.Print([]byte("version 3"))
+	// enter sleep mode so 7th bit (mode) can be set to 1 (LoRa mode)
 	l.writeReg(RegOpMode, ModeSleep)
+	// write LoRa mode (included in all mode constants here)
+	l.writeReg(RegOpMode, ModeSleep)
+	// go into standby to set other registers
+	l.writeReg(RegOpMode, ModeStandby)
+
+	lcd.ClearDisplay()
+	lcd.Print([]byte("init first"))
 
 	// set default modem: BW=125k, CR=4/5, SF=7
 	l.SetBandwidth(125000)
 	l.SetCodingRate("4/5")
 	l.SetSpreadingFactor(7)
 	l.SetLowDataRateOptimize(false)
-
-	// enable crc
+	l.SetReceiveTimeout(250 * time.Millisecond)
+	l.SetLnaGain(LNA_G3, LNA_Boost1) // balanced
 	l.SetCRC(true)
+
+	lcd.ClearDisplay()
+	lcd.Print([]byte("init half"))
 
 	// set frequency
 	frf := uint64(l.frequency) * (1 << 19) / 32_000_000
@@ -93,8 +120,14 @@ func (l *LoRa) Init() error {
 	l.writeReg(RegFifoTxBaseAddr, 0x00)
 	l.writeReg(RegFifoRxBaseAddr, 0x80)
 
-	// standby
-	l.writeReg(RegOpMode, ModeStandby)
+	// set payload length to almost half to be safe (because we split fifo in half)
+	l.writeReg(RegMaxPayloadLength, 127)
+
+	// reset irq
+	l.writeReg(RegIrqFlags, 0xFF)
+
+	lcd.ClearDisplay()
+	lcd.Print([]byte("init fin"))
 	return nil
 }
 
@@ -165,6 +198,7 @@ func (l *LoRa) SetLowDataRateOptimize(enable bool) error {
 		existing2 |= 0x08
 	} else {
 		existing1 &^= 0x01
+		existing2 &^= 0x08
 	}
 	if err := l.writeReg(RegModemConfig1, existing1); err != nil {
 		return err
@@ -172,11 +206,23 @@ func (l *LoRa) SetLowDataRateOptimize(enable bool) error {
 	return l.writeReg(RegModemConfig2, existing2)
 }
 
-func (l *LoRa) SetLnaGain(g byte) error {
-	if g > 5 {
+func (l *LoRa) SetLnaGain(gain, boost byte) error {
+	validGains := []byte{LNA_G1, LNA_G2, LNA_G3, LNA_G4, LNA_G5}
+	validGain := false
+	for _, v := range validGains {
+		if gain == v {
+			validGain = true
+			break
+		}
+	}
+	if !validGain {
 		return errors.New("invalid LNA gain")
 	}
-	ex := byte(0x20) | (g & 0x07)
+	if boost > 3 {
+		return errors.New("invalid LNA boost")
+	}
+
+	ex := gain | boost
 	return l.writeReg(RegLna, ex)
 }
 
@@ -200,6 +246,31 @@ func (l *LoRa) SetOcp(enable bool) error {
 		val |= 0x0F // disable
 	}
 	return l.writeReg(RegOcp, val)
+}
+
+func (l *LoRa) SetReceiveTimeout(d time.Duration) error {
+	timeoutSec := d.Seconds()
+	Ts := math.Pow(2, float64(l.spreadingF)) / float64(l.bandwidth)
+	symbols := uint16(math.Ceil(timeoutSec / Ts))
+	if symbols > 0x3FF {
+		symbols = 0x3FF
+	}
+	return l.SetSymbolTimeout(symbols)
+}
+
+func (l *LoRa) SetSymbolTimeout(timeout uint16) error {
+	// write lower 8 bits
+	if err := l.writeReg(RegSymbTimeoutLsb, byte(timeout&0xFF)); err != nil {
+		return err
+	}
+	// write upper bits (for some reason theyre in the 2nd modem config?)
+	existing, err := l.readReg(RegModemConfig2)
+	if err != nil {
+		return err
+	}
+	msb := byte((timeout >> 8) & 0x07)
+	newVal := (existing & 0xF8) | msb
+	return l.writeReg(RegModemConfig2, newVal)
 }
 
 // returns signal strength in dBm ( -120dBm (low) -> -30dBm (high) )

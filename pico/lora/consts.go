@@ -14,6 +14,7 @@ const (
 	RegFifoTxBaseAddr   = 0x0E
 	RegFifoRxBaseAddr   = 0x0F
 	RegFifoRxCurrent    = 0x10
+	RegIrqFlagsMask     = 0x11
 	RegIrqFlags         = 0x12
 	RegRxNbBytes        = 0x13
 	RegPktRssiValue     = 0x1A
@@ -21,7 +22,7 @@ const (
 	RegHopChannel       = 0x1C
 	RegModemConfig1     = 0x1D
 	RegModemConfig2     = 0x1E
-	RegSymbTimeoutLsb   = 0x20
+	RegSymbTimeoutLsb   = 0x1F
 	RegPreambleMsb      = 0x20
 	RegPreambleLsb      = 0x21
 	RegPayloadLength    = 0x22
@@ -32,34 +33,48 @@ const (
 )
 
 // mode constants
+// all of them have LoRa mode on because the other mode is unused
 const (
-	ModeSleep        = 0x00
-	ModeStandby      = 0x01
-	ModeFSTx         = 0x02
-	ModeTx           = 0x03
-	ModeFSRx         = 0x04
-	ModeRxContinuous = 0x05
-	ModeRxSingle     = 0x06
+	ModeSleep        = 0b10000000
+	ModeStandby      = 0b10000001
+	ModeFSTx         = 0b10000010
+	ModeTx           = 0b10000011
+	ModeFSRx         = 0b10000100
+	ModeRxContinuous = 0b10000101
+	ModeRxSingle     = 0b10000110
+	ModeCad          = 0b10000111
 )
 
 // dio0 mapping options
 const (
-	DIO0_RxDone          = 0x00
-	DIO0_TxDone          = 0x40
-	DIO0_PayloadCrcError = 0x80
-	DIO0_ValidHeader     = 0xC0
+	DIO0_RxDone  = 0b00
+	DIO0_TxDone  = 0b01
+	DIO0_CadDone = 0b10
 )
 
 // IRQ masks
 const (
-	IrqTxDone         = 0x08
-	IrqRxDone         = 0x40
-	IrqPayloadCrcErr  = 0x20
-	IrqValidHeader    = 0x10
-	IrqRxTimeout      = 0x80
-	IrqFhssChangeChan = 0x02
-	IrqCadDone        = 0x04
-	IrqCadDetected    = 0x01
+	IrqRxTimeout       = 0b10000000
+	IrqRxDone          = 0b01000000
+	IrqPayloadCrcError = 0b00100000
+	IrqValidHeader     = 0b00010000
+	IrqTxDone          = 0b00001000
+	IrqCadDone         = 0b00000100
+	IrqFhssChangeChan  = 0b00000010
+	IrqCadDetected     = 0b00000001
+)
+
+// LNA gain settings
+const (
+	LNA_G1 = 0x20
+	LNA_G2 = 0x40
+	LNA_G3 = 0x60
+	LNA_G4 = 0x80
+	LNA_G5 = 0xA0
+
+	LNA_Boost1 = 0x01
+	LNA_Boost2 = 0x02
+	LNA_Boost3 = 0x03
 )
 
 // bandwidth settings (Hz)
