@@ -22,7 +22,7 @@ const (
 	RegHopChannel       = 0x1C
 	RegModemConfig1     = 0x1D
 	RegModemConfig2     = 0x1E
-	RegSymbTimeoutLsb   = 0x20
+	RegSymbTimeoutLsb   = 0x1F
 	RegPreambleMsb      = 0x20
 	RegPreambleLsb      = 0x21
 	RegPayloadLength    = 0x22
@@ -62,6 +62,19 @@ const (
 	IrqCadDone         = 0b00000100
 	IrqFhssChangeChan  = 0b00000010
 	IrqCadDetected     = 0b00000001
+)
+
+// LNA gain settings
+const (
+	LNA_G1 = 0x20
+	LNA_G2 = 0x40
+	LNA_G3 = 0x60
+	LNA_G4 = 0x80
+	LNA_G5 = 0xA0
+
+	LNA_Boost1 = 0x01
+	LNA_Boost2 = 0x02
+	LNA_Boost3 = 0x03
 )
 
 // bandwidth settings (Hz)

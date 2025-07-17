@@ -8,11 +8,16 @@ import (
 const pollRate = 5 * time.Millisecond
 
 func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
-	// set standby mode
+	if len(data) > 127 {
+		return errors.New("payload too large")
+	}
+
+	// make sure were in standby mode
 	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
 		return err
 	}
-	// reset IRQ flags
+
+	// clear irq flags
 	l.writeReg(RegIrqFlags, 0xFF)
 	defer l.writeReg(RegIrqFlags, 0xFF)
 
@@ -49,24 +54,14 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 		time.Sleep(pollRate)
 	}
 
-	// clear IRQ flags
+	// clear irq flags
 	l.writeReg(RegIrqFlags, 0xFF)
 	return nil
 }
 
 func (l *LoRa) Receive(maxLen int) ([]byte, error) {
+	// make sure were in standby mode
 	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
-		return nil, err
-	}
-
-	symbTimeout := uint16(1000)
-	if err := l.writeReg(RegSymbTimeoutLsb, byte(symbTimeout&0xFF)); err != nil {
-		return nil, err
-	}
-	existing, _ := l.readReg(RegModemConfig2)
-	highBits := byte((symbTimeout >> 8) & 0x07)
-	newVal := (existing & 0xF8) | highBits
-	if err := l.writeReg(RegModemConfig2, newVal); err != nil {
 		return nil, err
 	}
 
