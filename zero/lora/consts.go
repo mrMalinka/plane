@@ -22,6 +22,7 @@ const (
 	RegHopChannel       = 0x1C
 	RegModemConfig1     = 0x1D
 	RegModemConfig2     = 0x1E
+	RegModemConfig3     = 0x26
 	RegSymbTimeoutLsb   = 0x1F
 	RegPreambleMsb      = 0x20
 	RegPreambleLsb      = 0x21

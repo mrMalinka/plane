@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 	"zero/lora"
 )
 
@@ -16,10 +17,14 @@ func main() {
 		panic(err)
 	}
 
-	data, err := radio.Receive(999)
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println(radio.FormatConfig())
 
-	println(string(data))
+	for {
+		data, err := radio.Receive(999, time.Second)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		println(string(data))
+	}
 }

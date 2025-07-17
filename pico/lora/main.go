@@ -2,6 +2,7 @@ package lora
 
 import (
 	"errors"
+	"fmt"
 	"machine"
 	"math"
 	"time"
@@ -18,16 +19,14 @@ type LoRaConfig struct {
 
 // SX127x
 type LoRa struct {
-	spiConn    machine.SPI
-	csPin      machine.Pin // chip select out
-	resetPin   machine.Pin // out
-	frequency  uint32      // in Hz
-	bandwidth  uint32
-	codingRate string
-	spreadingF byte
-	txPower    int // in dBm, NOT mW
+	spiConn  machine.SPI
+	csPin    machine.Pin // chip select out
+	resetPin machine.Pin // out
 
-	config LoRaConfig
+	frequency uint32 // in Hz
+
+	spreadingF byte
+	bandwidth  uint32
 }
 
 // spiDev: SPI0 or SPI1; sdo, sdi, sck, cs, reset: GPIO indexes; freqHz: e.g. 433e6
@@ -52,7 +51,7 @@ func New(c LoRaConfig) (*LoRa, error) {
 		SCK:       machine.Pin(c.Sck),
 	})
 
-	l := &LoRa{spiConn: c.SpiDev, csPin: csPin, resetPin: resetPin, frequency: c.FreqHz, config: c}
+	l := &LoRa{spiConn: c.SpiDev, csPin: csPin, resetPin: resetPin, frequency: c.FreqHz}
 	if err := l.Reset(); err != nil {
 		return nil, err
 	}
@@ -88,6 +87,7 @@ func (l *LoRa) Init() error {
 	l.SetCodingRate("4/5")
 	l.SetSpreadingFactor(7)
 	l.SetLowDataRateOptimize(false)
+	l.SetAgc(true)
 	l.SetReceiveTimeout(250 * time.Millisecond)
 	l.SetLnaGain(LNA_G3, LNA_Boost1) // balanced
 	l.SetCRC(true)
@@ -171,20 +171,30 @@ func (l *LoRa) SetSyncWord(sw byte) error {
 	return l.writeReg(RegSyncWord, sw)
 }
 
-func (l *LoRa) SetLowDataRateOptimize(enable bool) error {
-	existing1, _ := l.readReg(RegModemConfig1)
-	existing2, _ := l.readReg(RegModemConfig2)
-	if enable {
-		existing1 |= 0x01
-		existing2 |= 0x08
-	} else {
-		existing1 &^= 0x01
-		existing2 &^= 0x08
-	}
-	if err := l.writeReg(RegModemConfig1, existing1); err != nil {
+func (l *LoRa) SetAgc(enable bool) error {
+	existing, err := l.readReg(RegModemConfig3)
+	if err != nil {
 		return err
 	}
-	return l.writeReg(RegModemConfig2, existing2)
+	if enable {
+		existing |= 0x04
+	} else {
+		existing &^= 0x04
+	}
+	return l.writeReg(RegModemConfig3, existing)
+}
+
+func (l *LoRa) SetLowDataRateOptimize(enable bool) error {
+	existing, err := l.readReg(RegModemConfig3)
+	if err != nil {
+		return err
+	}
+	if enable {
+		existing |= 0x08 // Set bit3
+	} else {
+		existing &^= 0x08 // Clear bit3
+	}
+	return l.writeReg(RegModemConfig3, existing)
 }
 
 func (l *LoRa) SetLnaGain(gain, boost byte) error {
@@ -259,6 +269,86 @@ func (l *LoRa) GetSignalStrength() (int, error) {
 	rssiRaw, err := l.readReg(RegPktRssiValue)
 	// datasheet specifies offset of 137 dBm
 	return int(rssiRaw) - 137, err
+}
+
+func (l *LoRa) FormatConfig() (string, error) {
+	frfMsb, err := l.readReg(RegFrMsb)
+	if err != nil {
+		return "", err
+	}
+	frfMid, err := l.readReg(RegFrMid)
+	if err != nil {
+		return "", err
+	}
+	frfLsb, err := l.readReg(RegFrLsb)
+	if err != nil {
+		return "", err
+	}
+	frf := uint64(frfMsb)<<16 | uint64(frfMid)<<8 | uint64(frfLsb)
+	actualFreq := uint32(frf * 32_000_000 >> 19)
+
+	modemCfg1, err := l.readReg(RegModemConfig1)
+	if err != nil {
+		return "", err
+	}
+	bwReg := modemCfg1 & 0xF0
+	bw := uint32(0)
+	for hz, reg := range BwValues {
+		if reg == bwReg {
+			bw = hz
+			break
+		}
+	}
+
+	modemCfg2, err := l.readReg(RegModemConfig2)
+	if err != nil {
+		return "", err
+	}
+	sf := (modemCfg2 & 0xF0) >> 4
+
+	crReg := modemCfg1 & 0x0E
+	cr := "?"
+	for ratio, reg := range CrValues {
+		if reg == crReg {
+			cr = ratio
+			break
+		}
+	}
+
+	syncWord, err := l.readReg(RegSyncWord)
+	if err != nil {
+		return "", err
+	}
+
+	preambleMsb, err := l.readReg(RegPreambleMsb)
+	if err != nil {
+		return "", err
+	}
+	preambleLsb, err := l.readReg(RegPreambleLsb)
+	if err != nil {
+		return "", err
+	}
+	preamble := uint16(preambleMsb)<<8 | uint16(preambleLsb)
+
+	crcEnabled := (modemCfg2 & 0x04) != 0
+
+	modemCfg3, err := l.readReg(RegModemConfig3)
+	if err != nil {
+		return "", err
+	}
+	ldro := (modemCfg3 & 0x08) != 0
+
+	lnaReg, err := l.readReg(RegLna)
+	if err != nil {
+		return "", err
+	}
+	lnaGain := (lnaReg & 0xE0) >> 5
+	lnaBoost := lnaReg & 0x03
+
+	return fmt.Sprintf(
+		"Freq:%d|BW:%d|SF:%d|CR:%s|SW:0x%02X|PL:%d|CRC:%t|LDRO:%t|LNA:%d/%d",
+		actualFreq, bw, sf, cr, syncWord, preamble, crcEnabled, ldro, lnaGain, lnaBoost,
+	), nil
 }
 
 func (l *LoRa) writeReg(reg, val byte) error {

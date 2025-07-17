@@ -59,7 +59,7 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	return nil
 }
 
-func (l *LoRa) Receive(maxLen int) ([]byte, error) {
+func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 	// make sure were in standby mode
 	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
 		return nil, err
@@ -68,6 +68,8 @@ func (l *LoRa) Receive(maxLen int) ([]byte, error) {
 	// clear irq flags
 	l.writeReg(RegIrqFlags, 0xFF)
 	defer l.writeReg(RegIrqFlags, 0xFF)
+
+	l.SetReceiveTimeout(timeout)
 
 	// set to rx single mode
 	if err := l.writeReg(RegOpMode, ModeRxSingle); err != nil {

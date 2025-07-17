@@ -48,5 +48,5 @@ func main() {
 		return
 	}
 	lcd.ClearDisplay()
-	lcd.Print([]byte("finished"))
+	lcd.Print([]byte("done"))
 }
