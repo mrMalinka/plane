@@ -36,7 +36,7 @@ func main() {
 		Cs:     5,
 		Reset:  6,
 		FreqHz: 433e6,
-	}, &lcd)
+	})
 	if err != nil {
 		lcd.Print([]byte(err.Error()))
 		return

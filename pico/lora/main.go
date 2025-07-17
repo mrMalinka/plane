@@ -5,11 +5,7 @@ import (
 	"machine"
 	"math"
 	"time"
-
-	"tinygo.org/x/drivers/hd44780i2c"
 )
-
-var lcd *hd44780i2c.Device
 
 type LoRaConfig struct {
 	SpiDev machine.SPI
@@ -35,8 +31,7 @@ type LoRa struct {
 }
 
 // spiDev: SPI0 or SPI1; sdo, sdi, sck, cs, reset: GPIO indexes; freqHz: e.g. 433e6
-func New(c LoRaConfig, lcdl *hd44780i2c.Device) (*LoRa, error) {
-	lcd = lcdl
+func New(c LoRaConfig) (*LoRa, error) {
 	csPin := machine.Pin(c.Cs)
 	csPin.Configure(machine.PinConfig{
 		Mode: machine.PinOutput,
@@ -77,25 +72,16 @@ func (l *LoRa) Reset() error {
 }
 
 func (l *LoRa) Init() error {
-	lcd.ClearDisplay()
-	lcd.Print([]byte("version 1"))
 	ver, err := l.readReg(RegVersion)
-	lcd.ClearDisplay()
-	lcd.Print([]byte("version 2"))
 	if err != nil || ver != 0x12 {
 		return errors.New("LoRa module not found or unsupported version")
 	}
-	lcd.ClearDisplay()
-	lcd.Print([]byte("version 3"))
 	// enter sleep mode so 7th bit (mode) can be set to 1 (LoRa mode)
 	l.writeReg(RegOpMode, ModeSleep)
 	// write LoRa mode (included in all mode constants here)
 	l.writeReg(RegOpMode, ModeSleep)
 	// go into standby to set other registers
 	l.writeReg(RegOpMode, ModeStandby)
-
-	lcd.ClearDisplay()
-	lcd.Print([]byte("init first"))
 
 	// set default modem: BW=125k, CR=4/5, SF=7
 	l.SetBandwidth(125000)
@@ -105,9 +91,6 @@ func (l *LoRa) Init() error {
 	l.SetReceiveTimeout(250 * time.Millisecond)
 	l.SetLnaGain(LNA_G3, LNA_Boost1) // balanced
 	l.SetCRC(true)
-
-	lcd.ClearDisplay()
-	lcd.Print([]byte("init half"))
 
 	// set frequency
 	frf := uint64(l.frequency) * (1 << 19) / 32_000_000
@@ -126,8 +109,6 @@ func (l *LoRa) Init() error {
 	// reset irq
 	l.writeReg(RegIrqFlags, 0xFF)
 
-	lcd.ClearDisplay()
-	lcd.Print([]byte("init fin"))
 	return nil
 }
 
