@@ -229,7 +229,10 @@ func (l *LoRa) SetOcp(enable bool) error {
 func (l *LoRa) SetReceiveTimeout(d time.Duration) error {
 	timeoutSec := d.Seconds()
 	Ts := math.Pow(2, float64(l.spreadingF)) / float64(l.bandwidth)
-	symbols := min(uint16(math.Ceil(timeoutSec/Ts)), 0x3FF)
+	symbols := uint16(math.Ceil(timeoutSec / Ts))
+	if symbols > 0x3FF {
+		symbols = 0x3FF
+	}
 	return l.SetSymbolTimeout(symbols)
 }
 
