@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const pollRate = 5 * time.Millisecond
+
 func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	// set standby mode
 	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
@@ -12,9 +14,11 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	}
 	// reset IRQ flags
 	l.writeReg(RegIrqFlags, 0xFF)
+	defer l.writeReg(RegIrqFlags, 0xFF)
 
-	// set FIFO address pointer to TX base
-	l.writeReg(RegFifoAddrPtr, l.readRegOrZero(RegFifoTxBaseAddr))
+	// set FIFO address pointer to where tx starts
+	fifoTxBaseAddr, _ := l.readReg(RegFifoTxBaseAddr)
+	l.writeReg(RegFifoAddrPtr, fifoTxBaseAddr)
 
 	// write payload to FIFO
 	for _, b := range data {
@@ -27,19 +31,22 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 		return err
 	}
 
-	// set DIO0 to TxDone
-	if err := l.writeReg(RegDioMapping1, DIO0_TxDone); err != nil {
-		return err
-	}
-
-	// enter TX mode
+	// set to tx single mode
 	if err := l.writeReg(RegOpMode, ModeTx); err != nil {
 		return err
 	}
+	defer l.writeReg(RegOpMode, ModeStandby)
 
-	// wait for DIO0 rising edge
-	if !l.dio0Pin.WaitForEdge(timeout) {
-		return errors.New("transmit timeout")
+	// poll irq until tx is done
+	for {
+		irq, err := l.readReg(RegIrqFlags)
+		if err != nil {
+			return err
+		}
+		if irq&IrqTxDone != 0 {
+			break
+		}
+		time.Sleep(pollRate)
 	}
 
 	// clear IRQ flags
@@ -47,41 +54,50 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	return nil
 }
 
-func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
-	// reset IRQ flags
-	l.writeReg(RegIrqFlags, 0xFF)
-
-	// set FIFO address pointer to RX base
-	l.writeReg(RegFifoAddrPtr, l.readRegOrZero(RegFifoRxBaseAddr))
-
-	// map DIO0 to RxDone (00)
-	if err := l.writeReg(RegDioMapping1, RegFifo); err != nil {
+func (l *LoRa) Receive(maxLen int) ([]byte, error) {
+	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
 		return nil, err
 	}
 
-	// enter single RX mode
+	symbTimeout := uint16(1000)
+	if err := l.writeReg(RegSymbTimeoutLsb, byte(symbTimeout&0xFF)); err != nil {
+		return nil, err
+	}
+	existing, _ := l.readReg(RegModemConfig2)
+	highBits := byte((symbTimeout >> 8) & 0x07)
+	newVal := (existing & 0xF8) | highBits
+	if err := l.writeReg(RegModemConfig2, newVal); err != nil {
+		return nil, err
+	}
+
+	// clear irq flags
+	l.writeReg(RegIrqFlags, 0xFF)
+	defer l.writeReg(RegIrqFlags, 0xFF)
+
+	// set to rx single mode
 	if err := l.writeReg(RegOpMode, ModeRxSingle); err != nil {
 		return nil, err
 	}
+	defer l.writeReg(RegOpMode, ModeStandby)
 
-	// wait for DIO0 rising edge
-	if !l.dio0Pin.WaitForEdge(timeout) {
-		return nil, errors.New("receive timeout")
+poll: // poll irq flags register
+	for {
+		irq, err := l.readReg(RegIrqFlags)
+		if err != nil {
+			return nil, err
+		}
+
+		switch {
+		case irq&IrqRxDone != 0 && irq&IrqPayloadCrcError == 0:
+			break poll // valid packet
+		case irq&IrqPayloadCrcError != 0:
+			return nil, errors.New("crc error")
+		case irq&IrqRxTimeout != 0:
+			return nil, errors.New("rx timeout")
+		}
+		time.Sleep(pollRate)
 	}
 
-	// read IRQ flags
-	irq, err := l.readReg(RegIrqFlags)
-	if err != nil {
-		return nil, err
-	}
-
-	// check CRC error
-	if irq&0x20 != 0 {
-		l.writeReg(RegIrqFlags, 0xFF)
-		return nil, errors.New("CRC error")
-	}
-
-	// read number of received bytes
 	nb, err := l.readReg(RegRxNbBytes)
 	if err != nil {
 		return nil, err
@@ -90,7 +106,7 @@ func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 		return nil, errors.New("packet too large")
 	}
 
-	// set FIFO address pointer to current RX address
+	// set FIFO address pointer to where the packet begins
 	addr, _ := l.readReg(RegFifoRxCurrent)
 	l.writeReg(RegFifoAddrPtr, addr)
 
@@ -103,14 +119,5 @@ func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 		}
 		buf[i] = b
 	}
-
-	// clear IRQ flags
-	l.writeReg(RegIrqFlags, 0xFF)
 	return buf, nil
-}
-
-// reads a register or returns 0 on error
-func (l *LoRa) readRegOrZero(reg byte) byte {
-	b, _ := l.readReg(reg)
-	return b
 }

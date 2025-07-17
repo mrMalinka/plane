@@ -3,21 +3,23 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 	"zero/lora"
 )
 
 func main() {
-	radio, err := lora.New("", "GPIO25", "GPIO24", 433e6)
+	radio, err := lora.New("", "GPIO25", 433e6)
 	if err != nil {
 		fmt.Println("error while creating new lora:", err)
 		os.Exit(1)
 	}
-	radio.Init()
-	radio.SetTxPower(9)
+	if err = radio.SetTxPower(9); err != nil {
+		panic(err)
+	}
 
-	err = radio.Transmit([]byte("hello world"), 10*time.Millisecond)
+	data, err := radio.Receive(999)
 	if err != nil {
 		panic(err)
 	}
+
+	println(string(data))
 }

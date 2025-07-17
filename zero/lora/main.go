@@ -16,7 +16,6 @@ import (
 type LoRa struct {
 	spiConn    spi.Conn
 	resetPin   gpio.PinOut
-	dio0Pin    gpio.PinIn
 	frequency  uint32 // in Hz
 	bandwidth  uint32
 	codingRate string
@@ -24,8 +23,8 @@ type LoRa struct {
 	txPower    int // in dBm, NOT mW
 }
 
-// spiDev: default can be ""; reset, dio0: GPIO names; freqHz: e.g. 433e6
-func New(spiDev, reset, dio0 string, freqHz uint32) (*LoRa, error) {
+// spiDev: default can be ""; reset: GPIO name; freqHz: e.g. 433e6
+func New(spiDev, reset string, freqHz uint32) (*LoRa, error) {
 	if _, err := host.Init(); err != nil {
 		return nil, err
 	}
@@ -35,20 +34,18 @@ func New(spiDev, reset, dio0 string, freqHz uint32) (*LoRa, error) {
 	}
 
 	resetPin := gpioreg.ByName(reset)
-	dio0Pin := gpioreg.ByName(dio0)
-	if resetPin == nil || dio0Pin == nil {
+	if resetPin == nil {
 		return nil, errors.New("invalid GPIO pin name")
 	}
 
 	resetPin.Out(gpio.High)
-	dio0Pin.In(gpio.PullDown, gpio.RisingEdge)
 	// 10MHz clock speed, mode 0, 8 bits per word
 	conn, err := port.Connect(10*physic.MegaHertz, spi.Mode0, 8)
 	if err != nil {
 		return nil, err
 	}
 
-	l := &LoRa{spiConn: conn, resetPin: resetPin, dio0Pin: dio0Pin, frequency: freqHz}
+	l := &LoRa{spiConn: conn, resetPin: resetPin, frequency: freqHz}
 	if err := l.Reset(); err != nil {
 		return nil, err
 	}
@@ -76,8 +73,12 @@ func (l *LoRa) Init() error {
 	if err != nil || ver != 0x12 {
 		return errors.New("LoRa module not found or unsupported version")
 	}
-	// sleep to configure
+	// enter sleep mode so 7th bit (mode) can be set to 1 (LoRa mode)
 	l.writeReg(RegOpMode, ModeSleep)
+	// write LoRa mode (included in all mode constants here)
+	l.writeReg(RegOpMode, ModeSleep)
+	// go into standby to set other registers
+	l.writeReg(RegOpMode, ModeStandby)
 
 	// set default modem: BW=125k, CR=4/5, SF=7
 	l.SetBandwidth(125000)
@@ -99,8 +100,13 @@ func (l *LoRa) Init() error {
 	l.writeReg(RegFifoTxBaseAddr, 0x00)
 	l.writeReg(RegFifoRxBaseAddr, 0x80)
 
-	// standby
-	l.writeReg(RegOpMode, ModeStandby)
+	l.writeReg(RegSymbTimeoutLsb, 0x64)
+	// set payload length to almost half to be safe (because we split fifo in half)
+	l.writeReg(RegMaxPayloadLength, 127)
+	l.writeReg(RegLna, 0x20|0x03)
+
+	// reset irq
+	l.writeReg(RegIrqFlags, 0xFF)
 	return nil
 }
 
