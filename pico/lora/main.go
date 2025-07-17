@@ -82,14 +82,13 @@ func (l *LoRa) Init() error {
 	// go into standby to set other registers
 	l.writeReg(RegOpMode, ModeStandby)
 
-	// set default modem: BW=125k, CR=4/5, SF=7
 	l.SetBandwidth(125000)
-	l.SetCodingRate("4/5")
-	l.SetSpreadingFactor(7)
-	l.SetLowDataRateOptimize(false)
+	l.SetCodingRate("4/8")
+	l.SetSpreadingFactor(12)
+	l.SetLowDataRateOptimize(true)
+	l.SetLnaGain(LNA_G1, LNA_Boost3) // max range
+	l.SetPreambleLength(12)
 	l.SetAgc(true)
-	l.SetReceiveTimeout(250 * time.Millisecond)
-	l.SetLnaGain(LNA_G3, LNA_Boost1) // balanced
 	l.SetCRC(true)
 
 	// set frequency
@@ -100,8 +99,11 @@ func (l *LoRa) Init() error {
 
 	// set fifo memory spaces
 	// tx is first 128 bytes, rx is last
-	l.writeReg(RegFifoTxBaseAddr, 0x00)
-	l.writeReg(RegFifoRxBaseAddr, 0x80)
+	l.writeReg(RegFifoTxBaseAddr, 0)
+	l.writeReg(RegFifoRxBaseAddr, 128)
+
+	// set pa ramp to 50us
+	l.writeReg(RegPaRamp, 0x08)
 
 	// set payload length to almost half to be safe (because we split fifo in half)
 	l.writeReg(RegMaxPayloadLength, 127)
@@ -149,12 +151,20 @@ func (l *LoRa) SetSpreadingFactor(sf int) error {
 	return nil
 }
 
-func (l *LoRa) SetTxPower(pwr int) error {
-	if pwr < 2 || pwr > 17 {
-		return errors.New("power out of range")
+// refer to page 109 of the sx127x datasheet (or search for RegPaConfig)
+func (l *LoRa) SetTxPower(paBoost bool, maxPower byte, outputPower byte) error {
+	if maxPower > 0b111 {
+		maxPower = 0b111
 	}
-	sel := byte(0x00)
-	val := sel | byte(pwr+1)
+	if outputPower > 0b1111 {
+		outputPower = 0b1111
+	}
+	val := byte(0b0_000_1000)
+	if paBoost {
+		val |= 0b1_000_0000
+	}
+	val |= maxPower
+	val |= outputPower
 	return l.writeReg(RegPaConfig, val)
 }
 
@@ -264,11 +274,9 @@ func (l *LoRa) SetSymbolTimeout(timeout uint16) error {
 	return l.writeReg(RegModemConfig2, newVal)
 }
 
-// returns signal strength in dBm ( -120dBm (low) -> -30dBm (high) )
 func (l *LoRa) GetSignalStrength() (int, error) {
 	rssiRaw, err := l.readReg(RegPktRssiValue)
-	// datasheet specifies offset of 137 dBm
-	return int(rssiRaw) - 137, err
+	return int(rssiRaw) - 164, err
 }
 
 func (l *LoRa) FormatConfig() (string, error) {

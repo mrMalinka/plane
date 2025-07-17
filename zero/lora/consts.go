@@ -8,6 +8,7 @@ const (
 	RegFrMid            = 0x07
 	RegFrLsb            = 0x08
 	RegPaConfig         = 0x09
+	RegPaRamp           = 0x0A
 	RegOcp              = 0x0B
 	RegLna              = 0x0C
 	RegFifoAddrPtr      = 0x0D

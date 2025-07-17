@@ -41,6 +41,9 @@ func main() {
 		lcd.Print([]byte(err.Error()))
 		return
 	}
+	if err = radio.SetTxPower(true, 0, 8); err != nil {
+		panic(err)
+	}
 
 	err = radio.Transmit([]byte("hello world"), 2*time.Second)
 	if err != nil {
