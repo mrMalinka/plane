@@ -8,6 +8,9 @@ import (
 const pollRate = 5 * time.Millisecond
 
 func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
+	l.antennaMutex.Lock()
+	defer l.antennaMutex.Unlock()
+
 	if len(data) > 127 {
 		return errors.New("payload too large")
 	}
@@ -60,6 +63,9 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 }
 
 func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
+	l.antennaMutex.Lock()
+	defer l.antennaMutex.Unlock()
+
 	// make sure were in standby mode
 	if err := l.writeReg(RegOpMode, ModeStandby); err != nil {
 		return nil, err

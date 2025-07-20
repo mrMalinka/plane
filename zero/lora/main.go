@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"periph.io/x/conn/v3/gpio"
@@ -16,6 +17,8 @@ import (
 
 // SX127x
 type LoRa struct {
+	antennaMutex sync.Mutex
+
 	spiConn  spi.Conn
 	resetPin gpio.PinOut
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"machine"
 	"math"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,8 @@ type LoRaConfig struct {
 
 // SX127x
 type LoRa struct {
+	antennaMutex sync.Mutex
+
 	spiConn  machine.SPI
 	csPin    machine.Pin // chip select out
 	resetPin machine.Pin // out
