@@ -157,12 +157,8 @@ func (l *LoRa) SetSpreadingFactor(sf int) error {
 
 // refer to page 109 of the sx127x datasheet (or search for RegPaConfig)
 func (l *LoRa) SetTxPower(paBoost bool, maxPower byte, outputPower byte) error {
-	if maxPower > 0b111 {
-		maxPower = 0b111
-	}
-	if outputPower > 0b1111 {
-		outputPower = 0b1111
-	}
+	maxPower = min(maxPower, 0b111)
+	outputPower = min(outputPower, 0b1111)
 	val := byte(0b0_000_1000)
 	if paBoost {
 		val |= 0b1_000_0000
