@@ -20,8 +20,7 @@ done &
 
 # pi zero
 zero_sync() {
-    rsync --exclude="go.mod" \
-    -avz -e ssh "$PROJECT_ROOT"/zero/ \
+    rsync -avz -e ssh "$PROJECT_ROOT"/zero/ \
     "$ZERO_USERNAME"@"$ZERO_IP":"$ZERO_SYNC_DIR"/
 }
 alias zero_ssh="ssh $ZERO_USERNAME@$ZERO_IP"
@@ -77,6 +76,7 @@ pico_mount() {
     mkdir -p "$PROJECT_ROOT/pico/mount/"
     sudo mount "$DEV" "$PROJECT_ROOT/pico/mount/" -o uid=1000,gid=1000,flush
 }
+alias pico_unmount='sudo umount "$PROJECT_ROOT/pico/mount/"'
 pico_flash() {
     if ! mountpoint -q "$PROJECT_ROOT"/pico/mount; then
         echo "pico is not mounted, mounting"
@@ -87,7 +87,6 @@ pico_flash() {
     sudo mv main.uf2 "$PROJECT_ROOT"/pico/mount/
     pico_unmount
 }
-alias pico_unmount='sudo umount "$PROJECT_ROOT/pico/mount/"'
 alias pico_term='sudo picocom -b 115200 /dev/ttyACM0'
 
 mod_build_mode_on() {
