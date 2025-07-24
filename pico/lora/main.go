@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"machine"
-	"math"
 	"sync"
 	"time"
 )
@@ -76,7 +75,7 @@ func (l *LoRa) Reset() error {
 func (l *LoRa) Init() error {
 	ver, err := l.readReg(RegVersion)
 	if err != nil || ver != 0x12 {
-		return errors.New("LoRa module not found or unsupported version")
+		return fmt.Errorf("unsupported ver: 0x%00X", ver)
 	}
 	// enter sleep mode so 7th bit (mode) can be set to 1 (LoRa mode)
 	l.writeReg(RegOpMode, ModeSleep)
@@ -250,16 +249,6 @@ func (l *LoRa) SetOcp(enable bool) error {
 		val |= 0x0F // disable
 	}
 	return l.writeReg(RegOcp, val)
-}
-
-func (l *LoRa) SetReceiveTimeout(d time.Duration) error {
-	timeoutSec := d.Seconds()
-	Ts := math.Pow(2, float64(l.spreadingF)) / float64(l.bandwidth)
-	symbols := uint16(math.Ceil(timeoutSec / Ts))
-	if symbols > 0x3FF {
-		symbols = 0x3FF
-	}
-	return l.SetSymbolTimeout(symbols)
 }
 
 func (l *LoRa) SetSymbolTimeout(timeout uint16) error {

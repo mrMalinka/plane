@@ -7,7 +7,7 @@ import (
 
 const pollRate = 5 * time.Millisecond
 
-func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
+func (l *LoRa) Transmit(data []byte) error {
 	l.antennaMutex.Lock()
 	defer l.antennaMutex.Unlock()
 
@@ -62,7 +62,7 @@ func (l *LoRa) Transmit(data []byte, timeout time.Duration) error {
 	return nil
 }
 
-func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
+func (l *LoRa) Receive(maxLen int, timeout uint16) ([]byte, error) {
 	l.antennaMutex.Lock()
 	defer l.antennaMutex.Unlock()
 
@@ -75,7 +75,7 @@ func (l *LoRa) Receive(maxLen int, timeout time.Duration) ([]byte, error) {
 	l.writeReg(RegIrqFlags, 0xFF)
 	defer l.writeReg(RegIrqFlags, 0xFF)
 
-	l.SetReceiveTimeout(timeout)
+	l.SetSymbolTimeout(timeout)
 
 	// set to rx single mode
 	if err := l.writeReg(RegOpMode, ModeRxSingle); err != nil {
