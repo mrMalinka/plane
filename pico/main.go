@@ -3,6 +3,7 @@ package main
 import (
 	"machine"
 	"pico/lora"
+	"strconv"
 	"time"
 
 	"tinygo.org/x/drivers/hd44780i2c"
@@ -142,6 +143,7 @@ func usbLoop() {
 }
 
 func radioLoop() {
+	i := 0
 	for {
 		/*
 			data, err := radio.Receive(maxPacketSize, 800)
@@ -155,19 +157,18 @@ func radioLoop() {
 				continue
 			}
 		*/
-		/*
-			data := planeStatus{
-				status:   1,
-				battery:  20,
-				speed:    10.0,
-				altitude: 15.0,
-			}
-		*/
+		data := planeStatus{
+			status:   1,
+			battery:  20,
+			speed:    10.0,
+			altitude: 15.0,
+		}
 		lcd.ClearDisplay()
-		lcd.Print([]byte("forwarding"))
-		//bytes := data.toBytes()
+		lcd.Print([]byte("forwarding " + strconv.Itoa(i)))
+		bytes := data.toBytes()
 		// forward the data
-		//machine.USBCDC.Write(newPacket(header_bulk, bytes[:]))
+		machine.USBCDC.Write(newPacket(header_bulk, bytes[:]))
 		time.Sleep(5 * time.Second)
+		i++
 	}
 }

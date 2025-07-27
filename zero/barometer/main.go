@@ -131,19 +131,19 @@ func (b *BMP390) readCalibrationData() error {
 
 func (b *BMP390) configure() error {
 	osrValue := (b.config.PressureOversampling << 3) | b.config.TemperatureOversampling
-	if err := b.writeRegister(RegOsr, osrValue); err != nil {
+	if err := b.writeReg(RegOsr, osrValue); err != nil {
 		return fmt.Errorf("failed to configure oversampling: %w", err)
 	}
 
-	if err := b.writeRegister(RegOdr, b.config.OutputDataRate); err != nil {
+	if err := b.writeReg(RegOdr, b.config.OutputDataRate); err != nil {
 		return fmt.Errorf("failed to configure ODR: %w", err)
 	}
 
-	if err := b.writeRegister(RegConfig, b.config.IIRFilter<<1); err != nil {
+	if err := b.writeReg(RegConfig, b.config.IIRFilter<<1); err != nil {
 		return fmt.Errorf("failed to configure IIR filter: %w", err)
 	}
 
-	if err := b.writeRegister(RegPwrCtrl, 0x33); err != nil {
+	if err := b.writeReg(RegPwrCtrl, 0x33); err != nil {
 		return fmt.Errorf("failed to enable measurements: %w", err)
 	}
 
@@ -151,7 +151,7 @@ func (b *BMP390) configure() error {
 }
 
 func (b *BMP390) softReset() error {
-	return b.writeRegister(RegCmd, Cmd_softReset)
+	return b.writeReg(RegCmd, Cmd_softReset)
 }
 
 func (b *BMP390) ReadMeasurement() (*Measurement, error) {
@@ -208,7 +208,7 @@ func (b *BMP390) compensatePressure(rawPres float64) float64 {
 	return po1 + po2 + pd4
 }
 
-func (b *BMP390) writeRegister(reg, value uint8) error {
+func (b *BMP390) writeReg(reg, value uint8) error {
 	return b.dev.Tx([]byte{reg, value}, nil)
 }
 

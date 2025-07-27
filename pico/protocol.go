@@ -14,7 +14,15 @@ const (
 )
 
 func newPacket(header byte, payload []byte) []byte {
-	return append([]byte{header}, payload...)
+	// these packets are meant for everything from
+	// lora to usb and as such do not have to be modified when forwarded
+	// packet structure:
+	//  header - 2 bytes
+	//    first - length of the full packet including header
+	//    second - data type of payload
+	//
+	//  payload - n bytes
+	return append([]byte{byte(len(payload) + 2), header}, payload...)
 }
 
 func parsePacket(packet []byte) (header byte, payload []byte, err error) {

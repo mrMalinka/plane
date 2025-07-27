@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"time"
+	"zero/gyroscope"
 	"zero/lora"
 )
 
@@ -16,23 +17,40 @@ const (
 
 var (
 	radio *lora.LoRa
+	gyro  *gyroscope.BNO055
 
 	status planeStatus
 )
 
 func init() {
+	// log
 	file, err := os.OpenFile("blackbox.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
 		log.Fatalln("failed to open log file:", err)
 	}
 	log.SetOutput(file)
 
+	// lora
 	radio, err = lora.New("", "GPIO25", mainFrequency)
 	if err != nil {
 		log.Fatalln("error while creating new lora:", err)
 	}
 	if err = radio.SetTxPower(true, 0, 9); err != nil {
 		log.Fatalln("error while setting tx power on init:", err)
+	}
+
+	// gyro
+	gyro, err = gyroscope.New(
+		"1",
+
+		gyroscope.OrientAndroid|
+			gyroscope.EulerDeg|
+			gyroscope.TempC|
+			gyroscope.GyrDPS|
+			gyroscope.AccMS2,
+	)
+	if err != nil {
+		log.Fatalln("error while creating new gyro:", err)
 	}
 
 	status = planeStatus{
@@ -45,11 +63,41 @@ func init() {
 
 func main() {
 	log.Println(radio.FormatConfig())
+	for {
+		temp, err := gyro.ReadTemperature()
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+		fmt.Printf("Temperature: %v\n", temp)
 
-	go sensorLoop()
-	go radioLoop()
+		heading, roll, pitch, err := gyro.ReadEuler()
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+		fmt.Printf("Heading: %v\n", heading)
+		fmt.Printf("Roll: %v\n", roll)
+		fmt.Printf("Pitch: %v\n", pitch)
 
-	select {}
+		ax, ay, az, err := gyro.ReadLinearAccel()
+		if err != nil {
+			println(err.Error())
+			continue
+		}
+		fmt.Printf("AX: %v\n", ax)
+		fmt.Printf("AY: %v\n", ay)
+		fmt.Printf("AZ: %v\n", az)
+
+		println()
+
+		time.Sleep(time.Second)
+	}
+
+	//go sensorLoop()
+	//go radioLoop()
+
+	//select {}
 }
 
 func sensorLoop() {
