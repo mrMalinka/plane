@@ -6,11 +6,14 @@ import (
 )
 
 const (
-	header_error byte = iota
-	header_bulk       // all plane status data
+	payloadType_error byte = iota
+	payloadType_bulk       // all plane status data
+	payloadType_rssi       // exclusive to pico -> phone
 	// for manual control only
-	header_joystick
-	header_throttle
+	payloadType_joystick
+	payloadType_throttle
+
+	payloadType_errorInternal = 0xFF
 )
 
 func newPacket(header byte, payload []byte) []byte {
@@ -22,21 +25,22 @@ func newPacket(header byte, payload []byte) []byte {
 	//    second - data type of payload
 	//
 	//  payload - n bytes
-	return append([]byte{byte(len(payload)), header}, payload...)
+	return append([]byte{byte(len(payload) + 2), header}, payload...)
 }
 
-func parsePacket(packet []byte) (header byte, payload []byte, err error) {
+func parsePacket(packet []byte) (length uint8, payloadType byte, payload []byte, err error) {
 	if len(packet) == 0 {
-		return 0xFF, nil, errors.New("packet is empty")
+		return 0xFF, 0, nil, errors.New("packet is empty")
 	}
-	header = packet[0]
-	payload = packet[1:]
-	return header, payload, nil
+	length = packet[0]
+	payloadType = packet[1]
+	payload = packet[2:]
+	return
 }
 
 func formatErrorPacket(while string, err error) []byte {
 	return newPacket(
-		header_error,
-		[]byte(fmt.Sprintf("error while %s: %v", while, err.Error())),
+		payloadType_error,
+		fmt.Appendf(nil, "error while %s: %v", while, err.Error()),
 	)
 }

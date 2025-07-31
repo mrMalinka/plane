@@ -3,19 +3,20 @@ package main
 import (
 	"machine"
 	"pico/lora"
-	"strconv"
 	"time"
 
 	"tinygo.org/x/drivers/hd44780i2c"
 )
 
-/*func formatErrorPacket(while string, err error) []byte {
+/*
+func formatErrorPacket(while string, err error) []byte {
 	const header_error byte = 0
 	return append(
 		[]byte{header_error},
 		[]byte(fmt.Sprintf("error while %s: %v", while, err.Error()))...,
 	)
-}*/
+}
+*/
 
 func readUsbPacket() ([]byte, error) {
 	buf := make([]byte, maxPacketSize)
@@ -47,7 +48,7 @@ func readUsbPacket() ([]byte, error) {
 
 const (
 	mainFrequency  = 433.36e6
-	maxPacketSize  = 1 << 10
+	maxPacketSize  = 1 << 8
 	usbByteTimeout = 25 * time.Millisecond
 )
 
@@ -116,59 +117,59 @@ func init() {
 }
 
 func main() {
-	//go usbLoop()
+	go usbReceiveLoop()
 	go radioLoop()
 
 	select {}
 }
 
-func usbLoop() {
+func usbReceiveLoop() {
 	for {
 		data, err := readUsbPacket()
+		if len(data) == 0 {
+			time.Sleep(3 * time.Second)
+			continue
+		}
 		if err != nil {
 			lcd.ClearDisplay()
 			lcd.Print([]byte(err.Error()))
 			machine.USBCDC.Write(formatErrorPacket("receiving usb", err))
 			continue
 		}
+		lcd.ClearDisplay()
+		lcd.Print([]byte("USB:"))
+		lcd.SetCursor(0, 1)
+		lcd.Print(data)
 
-		err = radio.Transmit(data)
-		if err != nil {
-			lcd.ClearDisplay()
-			lcd.Print([]byte(err.Error()))
-			machine.USBCDC.Write(formatErrorPacket("forwarding data", err))
-			continue
-		}
+		/*
+			err = radio.Transmit(data)
+			if err != nil {
+				lcd.ClearDisplay()
+				lcd.Print([]byte(err.Error()))
+				machine.USBCDC.Write(formatErrorPacket("forwarding data", err))
+				continue
+			}
+		*/
 	}
 }
 
 func radioLoop() {
-	i := 0
 	for {
-		/*
-			data, err := radio.Receive(maxPacketSize, 800)
-			if err != nil {
-				lcd.ClearDisplay()
-				lcd.Print([]byte(err.Error()))
-				// TODO: do something when timed out
-				if err.Error() != "rx timeout" {
-					machine.USBCDC.Write(formatErrorPacket("receiving lora", err))
-				}
-				continue
+		data, err := radio.Receive(maxPacketSize, 800)
+		if err != nil {
+			lcd.ClearDisplay()
+			lcd.Print([]byte(err.Error()))
+			// TODO: do something when timed out
+			if err.Error() != "rx timeout" {
+				machine.USBCDC.Write(formatErrorPacket("receiving lora", err))
 			}
-		*/
-		data := planeStatus{
-			status:   1,
-			battery:  20,
-			speed:    10.0,
-			altitude: 15.0,
+			continue
 		}
 		lcd.ClearDisplay()
-		lcd.Print([]byte("forwarding " + strconv.Itoa(i)))
-		bytes := data.toBytes()
+		lcd.Print([]byte("forwarding"))
+		lcd.SetCursor(0, 1)
+		lcd.Print(data[13:29])
 		// forward the data
-		machine.USBCDC.Write(newPacket(header_bulk, bytes[:]))
-		time.Sleep(5 * time.Second)
-		i++
+		machine.USBCDC.Write(data)
 	}
 }

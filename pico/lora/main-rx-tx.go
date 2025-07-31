@@ -62,6 +62,7 @@ func (l *LoRa) Transmit(data []byte) error {
 	return nil
 }
 
+// timeout in symbols
 func (l *LoRa) Receive(maxLen int, timeout uint16) ([]byte, error) {
 	l.antennaMutex.Lock()
 	defer l.antennaMutex.Unlock()

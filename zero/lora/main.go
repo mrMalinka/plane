@@ -11,7 +11,6 @@ import (
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/conn/v3/spi"
 	"periph.io/x/conn/v3/spi/spireg"
-	"periph.io/x/host/v3"
 )
 
 // SX127x
@@ -28,10 +27,8 @@ type LoRa struct {
 }
 
 // spiDev: default can be ""; reset: GPIO name; freqHz: e.g. 433e6
+// make sure to call host.Init() before calling this
 func New(spiDev, reset string, freqHz uint32) (*LoRa, error) {
-	if _, err := host.Init(); err != nil {
-		return nil, err
-	}
 	port, err := spireg.Open(spiDev)
 	if err != nil {
 		return nil, err
