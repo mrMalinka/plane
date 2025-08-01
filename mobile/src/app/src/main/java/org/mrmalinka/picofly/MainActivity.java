@@ -150,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             internalLog("Exception closing port: " + e, true);
         }
+        setUsbStatus("Disconnected");
         usbSerialPort = null;
     }
 

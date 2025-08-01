@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"machine"
 	"pico/lora"
 	"time"
@@ -118,6 +119,7 @@ func init() {
 
 func main() {
 	go usbReceiveLoop()
+	go usbTransmitLoop()
 	go radioLoop()
 
 	select {}
@@ -150,6 +152,23 @@ func usbReceiveLoop() {
 				continue
 			}
 		*/
+	}
+}
+
+func usbTransmitLoop() {
+	const updateInterval = 2500 * time.Millisecond
+	for {
+		rssi, err := radio.GetSignalStrength()
+		if err != nil {
+			lcd.ClearDisplay()
+			lcd.Print([]byte(err.Error()))
+			machine.USBCDC.Write(formatErrorPacket("getting signal strength", err))
+			continue
+		}
+		rssiBytes := make([]byte, 4)
+		binary.BigEndian.PutUint32(rssiBytes, uint32(rssi))
+		machine.USBCDC.Write(newPacket(payloadType_rssi, rssiBytes))
+		time.Sleep(updateInterval)
 	}
 }
 

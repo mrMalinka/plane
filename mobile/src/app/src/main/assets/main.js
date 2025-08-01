@@ -141,6 +141,11 @@ window.onNewData = function (base64) {
           planeStatus.longitude,
         ]);
         break;
+      case payloadType_rssi:
+        const dataView = new DataView(result.payload.buffer);
+        const rssi = dataView.getInt32(0, false);
+        Alpine.store("connections").lora = rssi.toFixed(0) + "dBm";
+        break;
       default:
         Android.internalLogJS("No bulk");
     }

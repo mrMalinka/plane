@@ -1,5 +1,9 @@
 <resources>
     <!-- pico -->
-    <usb-device vendor-id="0x2E8A" product-id="0x0005" />
-    <usb-device vendor-id="0x2E8A" product-id="0x000A" />
+    <usb-device
+        product-id="0x0005"
+        vendor-id="0x2E8A" />
+    <usb-device
+        product-id="0x000A"
+        vendor-id="0x2E8A" />
 </resources>
