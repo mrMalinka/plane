@@ -78,9 +78,26 @@ function planeStatusFromBytes(data) {
 const payloadType_error = 0;
 const payloadType_bulk = 1;
 const payloadType_rssi = 2;
-const payloadType_joystick = 3;
-const payloadType_throttle = 4;
+const payloadType_wpSet = 3;
+const payloadType_altSet = 4;
+const payloadType_takeoff = 5;
+const payloadType_land = 6;
+// for manual control only
+const payloadType_joystick = 7;
+const payloadType_throttle = 8;
 const payloadType_errorInternal = 0xff;
+
+function newPacket(payloadType, payload) {
+  // these packets are meant for everything from
+  // lora to usb and as such do not have to be modified when forwarded
+  // packet structure:
+  //  header - 2 bytes
+  //    first - length of the full packet including header
+  //    second - data type of payload
+  //
+  //  payload - n bytes
+  return [payload.length + 2, payloadType, ...payload];
+}
 
 function parsePacket(packet) {
   if (packet.length === 0) {
@@ -103,6 +120,22 @@ function parsePacket(packet) {
 // -------
 // main
 // -------
+
+function buttonRelocate() {
+  if (!Alpine.store("map").map) {
+    Android.internalLogJS("Map not initialized");
+    return;
+  }
+
+  const center = Alpine.store("map").map.getCenter();
+  const buffer = new ArrayBuffer(16);
+  const view = new DataView(buffer);
+  view.setFloat64(0, center.lat, false);
+  view.setFloat64(8, center.lng, false);
+
+  const payload = Array.from(new Uint8Array(buffer));
+  Android.usbWrite(newPacket(payloadType_wpSet, payload));
+}
 
 window.updateUsbStatusText = function (text) {
   Alpine.store("connections").usb = text;
@@ -147,7 +180,7 @@ window.onNewData = function (base64) {
         Alpine.store("connections").lora = rssi.toFixed(0) + "dBm";
         break;
       default:
-        Android.internalLogJS("No bulk");
+        Android.internalLogJS("Invalid packet");
     }
   }
 };

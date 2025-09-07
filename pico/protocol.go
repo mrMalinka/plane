@@ -9,6 +9,10 @@ const (
 	payloadType_error byte = iota
 	payloadType_bulk       // all plane status data
 	payloadType_rssi       // exclusive to pico -> phone
+	payloadType_wpSet
+	payloadType_altSet
+	payloadType_takeoff
+	payloadType_land
 	// for manual control only
 	payloadType_joystick
 	payloadType_throttle
@@ -16,7 +20,7 @@ const (
 	payloadType_errorInternal = 0xFF
 )
 
-func newPacket(header byte, payload []byte) []byte {
+func newPacket(payloadType byte, payload []byte) []byte {
 	// these packets are meant for everything from
 	// lora to usb and as such do not have to be modified when forwarded
 	// packet structure:
@@ -25,7 +29,7 @@ func newPacket(header byte, payload []byte) []byte {
 	//    second - data type of payload
 	//
 	//  payload - n bytes
-	return append([]byte{byte(len(payload) + 2), header}, payload...)
+	return append([]byte{byte(len(payload) + 2), payloadType}, payload...)
 }
 
 func parsePacket(packet []byte) (length uint8, payloadType byte, payload []byte, err error) {

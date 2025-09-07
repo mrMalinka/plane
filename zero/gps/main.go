@@ -46,18 +46,18 @@ func (n *NEO6M) Sentence() (nmea.Sentence, error) {
 	return s, nil
 }
 
-func (n *NEO6M) LatitudeLongitude() (float64, float64, error) {
+func (n *NEO6M) LatLongAlt() (float64, float64, float64, error) {
 	for {
 		sentence, err := n.Sentence()
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, 0, err
 		}
 		switch sentence := sentence.(type) {
 		case nmea.GGA:
 			if sentence.FixQuality == "0" {
-				return 0, 0, errors.New("fix not available")
+				return 0, 0, 0, errors.New("fix not available")
 			}
-			return sentence.Latitude, sentence.Longitude, nil
+			return sentence.Latitude, sentence.Longitude, sentence.Altitude, nil
 		}
 	}
 }
